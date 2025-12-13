@@ -10,6 +10,11 @@ export default function ProtectedRoute({ children }) {
   const logoutWithAlert = async () => {
     await showSessionTimeout(); // wait for user to click OK
     localStorage.removeItem("access_token");
+    localStorage.removeItem("hr_role");
+    localStorage.removeItem("employee_id");
+    localStorage.removeItem("workstation_hold");
+    localStorage.removeItem("f_name");
+    localStorage.removeItem("l_name");
     window.location.href = "/";
   };
 
