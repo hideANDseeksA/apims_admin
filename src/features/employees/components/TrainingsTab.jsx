@@ -1,6 +1,4 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
-
 import {
   Card,
   CardContent,
@@ -17,10 +15,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import APIV2 from "@/api/axiosv2";
+import API from "@/api/axios";
+import { showSuccess, showError, showConfirm } from "@/utils/alerts";
 
 const TrainingsTab = ({ employeeId }) => {
-  const API_URL = import.meta.env.VITE_API_URL;
-
+  const [loading, setLoading] = useState(false);
   const [trainings, setTrainings] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -40,10 +40,14 @@ const TrainingsTab = ({ employeeId }) => {
   // Fetch trainings
   const fetchTrainings = async () => {
     try {
-      const res = await axios.get(`${API_URL}/trainings/${employeeId}`);
+      setLoading(true)
+      const res = await APIV2.get(`/trainings/${employeeId}`);
       setTrainings(res.data.data || []);
+      setLoading(false)
     } catch (error) {
       console.error("Error fetching trainings:", error);
+      setTrainings([]);
+      setLoading(false)
     }
   };
 
@@ -97,6 +101,12 @@ const TrainingsTab = ({ employeeId }) => {
 
   // Submit
   const handleSubmit = async () => {
+    setOpenDialog(false);
+
+
+    const confirm = await showConfirm("Are you sure to save this changes?");
+    if (!confirm.isConfirmed) return;
+
     try {
       const dataToSend = new FormData();
       Object.entries(formData).forEach(([key, value]) => {
@@ -106,17 +116,17 @@ const TrainingsTab = ({ employeeId }) => {
       dataToSend.append("employee_id", employeeId);
 
       if (isEditing && editingId) {
-        await axios.put(`${API_URL}/trainings/${editingId}`, dataToSend, {
+        await API.put(`/trainings/${editingId}`, dataToSend, {
           headers: { "Content-Type": "multipart/form-data" },
         });
       } else {
-        await axios.post(`${API_URL}/trainings/upload_and_create`, dataToSend, {
+        await API.post(`/trainings/upload_and_create`, dataToSend, {
           headers: { "Content-Type": "multipart/form-data" },
         });
       }
 
       fetchTrainings();
-      setOpenDialog(false);
+      await showSuccess();
     } catch (error) {
       console.error("Error saving training:", error);
     }
@@ -124,15 +134,30 @@ const TrainingsTab = ({ employeeId }) => {
 
   // Delete
   const handleDelete = async (id) => {
-    if (!confirm("Delete this training?")) return;
+
+    const confirm = await showConfirm("Are you sure to delete this data?");
+    if (!confirm.isConfirmed) return;
 
     try {
-      await axios.delete(`${API_URL}/trainings/${id}`);
+      await API.delete(`/trainings/${id}`);
       fetchTrainings();
     } catch (error) {
       console.error("Error deleting training:", error);
     }
   };
+
+  if (loading)
+    return (
+      <div className="flex min-h-[200px] items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          {/* Spinner */}
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
+
+          {/* Loading text */}
+          <span className="text-gray-600 font-medium">Loading trainings data...</span>
+        </div>
+      </div>
+    );
 
   return (
     <div className="space-y-4">
@@ -142,113 +167,113 @@ const TrainingsTab = ({ employeeId }) => {
         <Button onClick={openAddDialog}>Add Training</Button>
       </div>
 
-    {/* TRAININGS GRID */}
-{trainings.length > 0 ? (
-  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-    {trainings.map((rec) => (
-      <Card
-        key={rec.id}
-        className="shadow-md hover:shadow-xl transition-all border border-gray-200 rounded-xl hover:scale-[1.02]"
-      >
-        <CardHeader className="pb-2">
-          <div className="flex justify-between items-start">
-            <CardTitle className="text-base font-semibold text-[#1A3A1A] leading-tight">
-              {rec.title}
-            </CardTitle>
+      {/* TRAININGS GRID */}
+      {trainings.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {trainings.map((rec) => (
+            <Card
+              key={rec.id}
+              className="shadow-md hover:shadow-xl transition-all border border-gray-200 rounded-xl hover:scale-[1.02]"
+            >
+              <CardHeader className="pb-2">
+                <div className="flex justify-between items-start">
+                  <CardTitle className="text-base font-semibold text-[#1A3A1A] leading-tight">
+                    {rec.title}
+                  </CardTitle>
 
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8 px-3 rounded-lg"
-                onClick={() => openEditDialog(rec)}
-              >
-                Edit
-              </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 px-3 rounded-lg"
+                      onClick={() => openEditDialog(rec)}
+                    >
+                      Edit
+                    </Button>
 
-              <Button
-                size="sm"
-                variant="destructive"
-                className="h-8 px-3 rounded-lg"
-                onClick={() => handleDelete(rec.id)}
-              >
-                Delete
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="h-8 px-3 rounded-lg"
+                      onClick={() => handleDelete(rec.id)}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
 
-        <CardContent className="space-y-3 text-sm py-2">
-          {/* DATE */}
-          <div className="flex items-start gap-2">
-            <span className="text-gray-500 mt-[2px]">📅</span>
-            <div>
-              <Label className="text-gray-600">Date</Label>
-              <p className="font-medium">
-                {rec.from_date} → {rec.to_date}
-              </p>
-            </div>
-          </div>
+              <CardContent className="space-y-3 text-sm py-2">
+                {/* DATE */}
+                <div className="flex items-start gap-2">
+                  <span className="text-gray-500 mt-[2px]">📅</span>
+                  <div>
+                    <Label className="text-gray-600">Date</Label>
+                    <p className="font-medium">
+                      {rec.from_date} → {rec.to_date}
+                    </p>
+                  </div>
+                </div>
 
-          {/* HOURS */}
-          <div className="flex items-start gap-2">
-            <span className="text-gray-500 mt-[2px]">⏱️</span>
-            <div>
-              <Label className="text-gray-600">Hours</Label>
-              <p className="font-medium">{rec.hours}</p>
-            </div>
-          </div>
+                {/* HOURS */}
+                <div className="flex items-start gap-2">
+                  <span className="text-gray-500 mt-[2px]">⏱️</span>
+                  <div>
+                    <Label className="text-gray-600">Hours</Label>
+                    <p className="font-medium">{rec.hours}</p>
+                  </div>
+                </div>
 
-          {/* SPONSOR */}
-          <div className="flex items-start gap-2">
-            <span className="text-gray-500 mt-[2px]">🏢</span>
-            <div>
-              <Label className="text-gray-600">Sponsor</Label>
-              <p className="font-medium">{rec.sponsor}</p>
-            </div>
-          </div>
+                {/* SPONSOR */}
+                <div className="flex items-start gap-2">
+                  <span className="text-gray-500 mt-[2px]">🏢</span>
+                  <div>
+                    <Label className="text-gray-600">Sponsor</Label>
+                    <p className="font-medium">{rec.sponsor}</p>
+                  </div>
+                </div>
 
-          {/* LEVEL */}
-          <div className="flex items-start gap-2">
-            <span className="text-gray-500 mt-[2px]">🎓</span>
-            <div>
-              <Label className="text-gray-600">Level</Label>
-              <p className="font-medium">{rec.level}</p>
-            </div>
-          </div>
+                {/* LEVEL */}
+                <div className="flex items-start gap-2">
+                  <span className="text-gray-500 mt-[2px]">🎓</span>
+                  <div>
+                    <Label className="text-gray-600">Level</Label>
+                    <p className="font-medium">{rec.level}</p>
+                  </div>
+                </div>
 
-          {/* PARTICIPANT TYPE */}
-          <div className="flex items-start gap-2">
-            <span className="text-gray-500 mt-[2px]">👤</span>
-            <div>
-              <Label className="text-gray-600">Participant Type</Label>
-              <p className="font-medium">{rec.participant_type}</p>
-            </div>
-          </div>
+                {/* PARTICIPANT TYPE */}
+                <div className="flex items-start gap-2">
+                  <span className="text-gray-500 mt-[2px]">👤</span>
+                  <div>
+                    <Label className="text-gray-600">Participant Type</Label>
+                    <p className="font-medium">{rec.participant_type}</p>
+                  </div>
+                </div>
 
-          {/* CERTIFICATE LINK */}
-          {rec.signed_url && (
-            <div className="flex items-start gap-2">
-              <span className="text-gray-500 mt-[2px]">📄</span>
-              <div>
-                <Label className="text-gray-600">Certificate</Label>
-                <a
-                  href={rec.signed_url}
-                  target="_blank"
-                  className="text-blue-600 underline font-medium hover:text-blue-800"
-                >
-                  View Certificate
-                </a>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    ))}
-  </div>
-) : (
-  <p className="text-gray-500">No training records found.</p>
-)}
+                {/* CERTIFICATE LINK */}
+                {rec.signed_url && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-gray-500 mt-[2px]">📄</span>
+                    <div>
+                      <Label className="text-gray-600">Certificate</Label>
+                      <a
+                        href={rec.signed_url}
+                        target="_blank"
+                        className="text-blue-600 underline font-medium hover:text-blue-800"
+                      >
+                        View Certificate
+                      </a>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <p className="text-gray-500">No training records found.</p>
+      )}
 
       {/* DIALOG */}
       <Dialog open={openDialog} onOpenChange={setOpenDialog}>

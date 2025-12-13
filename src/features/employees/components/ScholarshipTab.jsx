@@ -6,22 +6,30 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Edit, Trash2, PlusCircle } from "lucide-react";
+import API from "@/api/axios";
+import { showSuccess, showError, showConfirm } from "@/utils/alerts";
+import APIV2 from "@/api/axiosv2";
 
 const ScholarshipTab = ({ employeeId }) => {
-  const API_URL = import.meta.env.VITE_API_URL;
   const [scholarships, setScholarships] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
+  const [loading, setLoading] = useState(false);
+
   const [formData, setFormData] = useState({ title: "", sponsor: "", date_from: "", date_to: "" });
 
   const fetchScholarships = async () => {
     try {
-      const res = await axios.get(`${API_URL}/schoolarship/${employeeId}`);
+      setLoading(true);
+      const res = await APIV2.get(`/schoolarship/${employeeId}`);
       setScholarships(res.data || []);
+      setLoading(false);
     } catch (error) {
       console.error("Error fetching scholarships:", error);
+      setScholarships([]);
+      setLoading(false);
     }
   };
 
@@ -47,32 +55,55 @@ const ScholarshipTab = ({ employeeId }) => {
   };
 
   const handleSubmit = async () => {
+    setOpenDialog(false);
+    const confirm = await showConfirm("Are you sure to save this changes?");
+    if (!confirm.isConfirmed) return;
+
+
     try {
       if (isEditing && editingId) {
-        await axios.put(`${API_URL}/schoolarship/${editingId}`, { ...formData, employee_id: employeeId });
+        await API.put(`/schoolarship/${editingId}`, { ...formData, employee_id: employeeId });
       } else {
-        await axios.post(`${API_URL}/schoolarship`, { ...formData, employee_id: employeeId });
+        await API.post(`/schoolarship`, { ...formData, employee_id: employeeId });
       }
 
       fetchScholarships();
-      setOpenDialog(false);
       setFormData({ title: "", sponsor: "", date_from: "", date_to: "" });
       setIsEditing(false);
       setEditingId(null);
+
+      await showSuccess();
     } catch (error) {
       console.error("Error saving scholarship:", error);
     }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Are you sure you want to delete this record?")) return;
+    const confirm = await showConfirm("Are you sure to delete this data?");
+    if (!confirm.isConfirmed) return;
+
     try {
-      await axios.delete(`${API_URL}/schoolarship/${id}`);
+      await API.delete(`/schoolarship/${id}`);
       fetchScholarships();
+      await showSuccess("Deleted!");
     } catch (error) {
       console.error("Delete error:", error);
     }
   };
+
+  if (loading)
+    return (
+      <div className="flex min-h-[200px] items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          {/* Spinner */}
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
+
+          {/* Loading text */}
+          <span className="text-gray-600 font-medium">Loading schoolarship data...</span>
+        </div>
+      </div>
+    );
+
 
   return (
     <div className="space-y-4">

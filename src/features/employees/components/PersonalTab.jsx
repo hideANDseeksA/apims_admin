@@ -3,10 +3,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import APIV2 from '@/api/axiosv2';
+import { showSuccess, showError, showConfirm } from "@/utils/alerts";
 
 const PersonalTab = ({ employeeId }) => {
-  const API_URL = import.meta.env.VITE_API_URL;
+
   const [formData, setFormData] = useState({});
   const [loading, setLoading] = useState(false);
 
@@ -59,7 +60,7 @@ const PersonalTab = ({ employeeId }) => {
     const fetchEmployee = async () => {
       try {
         setLoading(true);
-        const res = await axios.get(`${API_URL}/employee/personal_info/${employeeId}`);
+        const res = await APIV2.get(`/employee/personal_info/${employeeId}`);
         // Fix: Set formData to res.data directly, not res.data.data
         setFormData(res.data);
       } catch (err) {
@@ -76,16 +77,32 @@ const PersonalTab = ({ employeeId }) => {
   };
 
   const handleSave = async () => {
+  const confirm = await showConfirm("Are you sure to save this changes?");
+  if (!confirm.isConfirmed) return;
+
+
     try {
-      await axios.put(`${API_URL}/employee/update/${employeeId}`, formData);
-      alert("✅ Employee data updated successfully!");
+      await APIV2.put(`/employee/update/${employeeId}`, formData);
+      await showSuccess("✅ Employee data updated successfully!");
     } catch (err) {
       console.error("❌ Error updating employee:", err);
-      alert("Update failed. Please check the console.");
+      await showError("Update failed. Please check the console.");
     }
   };
 
-  if (loading) return <p>Loading employee data...</p>;
+if (loading)
+  return (
+    <div className="flex min-h-[200px] items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        {/* Spinner */}
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
+
+        {/* Loading text */}
+        <span className="text-gray-600 font-medium">Loading employee data...</span>
+      </div>
+    </div>
+  );
+
 
   return (
     <div className="space-y-6">

@@ -31,7 +31,7 @@ const Employees = () => {
   const navigate = useNavigate();
 
   /** Fetch Employees */
-
+const [open, setOpen] = useState(false);
 const fetchEmployees = async () => {
   try {
     const workstation_hold = localStorage.getItem("workstation_hold");
@@ -165,20 +165,18 @@ const fetchEmployees = async () => {
         </Flex>
 
         {/* Restore YOUR ORIGINAL SHADCN DIALOG */}
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button 
-            color="green">Add Employee
-            
-                      
+   <Dialog open={open} onOpenChange={setOpen}>
+  <DialogTrigger asChild>
+    <Button color="green">Add Employee</Button>
+  </DialogTrigger>
 
-            </Button>
-          </DialogTrigger>
-
-          <DialogContent className="w-full max-w-6xl max-h-[90vh] overflow-y-auto">
-            <AddEmployee onSuccess={fetchEmployees} />
-          </DialogContent>
-        </Dialog>
+  <DialogContent className="w-full max-w-6xl max-h-[90vh] overflow-y-auto">
+    <AddEmployee
+      closeDialog={() => setOpen(false)} // 👈 pass close function
+      onSuccess={fetchEmployees}
+    />
+  </DialogContent>
+</Dialog>
       </Flex>
     ),
   });

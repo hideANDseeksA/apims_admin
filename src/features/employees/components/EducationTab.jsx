@@ -3,11 +3,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import axios from 'axios';
+import { showSuccess, showError, showConfirm } from "@/utils/alerts";
 import React, { useEffect, useState } from 'react';
+import APIV2 from '@/api/axiosv2';
+import API from '@/api/axios';
 
 const EducationTab = ({ employeeId }) => {
-  const API_URL = import.meta.env.VITE_API_URL;
   const [educationData, setEducationData] = useState([]);
   const [formData, setFormData] = useState({
     id: null,
@@ -19,13 +20,17 @@ const EducationTab = ({ employeeId }) => {
   });
   const [isEditing, setIsEditing] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const fetchEducationData = async () => {
     try {
-      const response = await axios.get(`${API_URL}/education/all/${employeeId}`);
+      setLoading(true)
+      const response = await APIV2.get(`/education/all/${employeeId}`);
       setEducationData(response.data || []);
+      setLoading(false)
     } catch (error) {
       console.error('Error fetching education data:', error);
+      setLoading(false)
     }
   };
 
@@ -61,6 +66,9 @@ const EducationTab = ({ employeeId }) => {
   };
 
   const handleSubmit = async () => {
+      setOpenDialog(false);
+    const confirm = await showConfirm("Are you sure to save this changes?");
+    if (!confirm.isConfirmed) return;
     try {
       const payload = {
         school_name: formData.school_name,
@@ -72,32 +80,54 @@ const EducationTab = ({ employeeId }) => {
       };
 
       if (isEditing) {
-        await axios.put(`${API_URL}/education/update/${formData.id}`, payload);
+        await API.put(`/education/update/${formData.id}`, payload);
       } else {
-        await axios.post(`${API_URL}/education/add`, payload);
+        await API.post(`/education/add`, payload);
       }
+      await showSuccess();
 
       fetchEducationData();
-      setOpenDialog(false);
+
     } catch (error) {
       console.error('Error saving education data:', error);
+          await showError();
     }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Are you sure you want to delete this education record?")) return;
+
+
+    const confirm = await showConfirm("Are you sure to delete this data?");
+    if (!confirm.isConfirmed) return;
 
     try {
-      await axios.delete(`${API_URL}/education/delete/${id}`);
+      await API.delete(`/education/delete/${id}`);
+          await showSuccess();
       fetchEducationData();
+
     } catch (error) {
       console.error("Delete error:", error);
+      await showError();
     }
   };
 
   useEffect(() => {
     fetchEducationData();
   }, [employeeId]);
+
+  
+if (loading)
+  return (
+    <div className="flex min-h-[200px] items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        {/* Spinner */}
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
+
+        {/* Loading text */}
+        <span className="text-gray-600 font-medium">Loading education data...</span>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-2">

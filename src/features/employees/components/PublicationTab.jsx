@@ -3,25 +3,29 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import axios from 'axios';
 import React, { useEffect, useState } from 'react';
-
-// Icons
 import { Plus, Edit, Trash2 } from "lucide-react";
+import APIV2 from '@/api/axiosv2';
+
+import API from "@/api/axios";
+import { showSuccess, showError, showConfirm } from "@/utils/alerts";
 
 const PublicationTab = ({ employeeId }) => {
   const [publicationData, setPublicationData] = useState([]);
   const [editForm, setEditForm] = useState({ title: '', date: '' });
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
-  const API_URL = import.meta.env.VITE_API_URL;
-
+const [loading, setLoading] = useState(false);
   const fetchPublicationData = async () => {
     try {
-      const response = await axios.get(`${API_URL}/publication/all`);
+      setLoading(true);
+      const response = await APIV2.get(`/publication/${employeeId}`);
       setPublicationData(response.data || []);
+       setLoading(false);
     } catch (error) {
       console.error('Error fetching publication data:', error);
+          setPublicationData( []);
+       setLoading(false);
     }
   };
 
@@ -45,6 +49,11 @@ const PublicationTab = ({ employeeId }) => {
   };
 
   const handleSave = async () => {
+         setOpenDialog(false);
+
+    const confirm = await showConfirm("Are you sure to save this changes?");
+    if (!confirm.isConfirmed) return;
+
     try {
       const payload = {
         title: editForm.title,
@@ -53,26 +62,30 @@ const PublicationTab = ({ employeeId }) => {
       };
 
       if (selectedRecord) {
-        await axios.put(`${API_URL}/publication/update/${selectedRecord.id}`, payload);
+        await API.put(`/publication/update/${selectedRecord.id}`, payload);
       } else {
-        await axios.post(`${API_URL}/publication/add`, payload);
+        await API.post(`/publication/add`, payload);
       }
 
       fetchPublicationData();
       setEditForm({ title: '', date: '' });
       setSelectedRecord(null);
-      setOpenDialog(false);
+       await showSuccess();
+ 
     } catch (error) {
       console.error('Error saving publication data:', error);
     }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Are you sure you want to delete this publication?")) return;
+   const confirm = await showConfirm("Are you sure to delete this data?");
+    if (!confirm.isConfirmed) return;
+
 
     try {
-      await axios.delete(`${API_URL}/publication/delete/${id}`);
+      await API.delete(`/publication/delete/${id}`);
       fetchPublicationData();
+      await showSuccess("Delete!");
     } catch (error) {
       console.error("Delete error:", error);
     }
@@ -81,6 +94,19 @@ const PublicationTab = ({ employeeId }) => {
   const handleChange = (field, value) => {
     setEditForm((prev) => ({ ...prev, [field]: value }));
   };
+
+if (loading)
+  return (
+    <div className="flex min-h-[200px] items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        {/* Spinner */}
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
+
+        {/* Loading text */}
+        <span className="text-gray-600 font-medium">Loading publication data...</span>
+      </div>
+    </div>
+  );
 
   return (
     <div>

@@ -28,6 +28,8 @@ import Profile from "@/features/user/pages/Profile";
 import RepubrishItems from "@/features/position/pages/repubrish_items";
 import ServiceRecord from "@/features/service_records/pages/ServiceRecords";
 import UserManagement from "@/features/admin/pages/UserManagement";
+import GoogleSignInCallback from "@/features/auth/pages/GoogleSignInCallback";
+import GoogleSignUpCallback from "@/features/auth/pages/GoogleSignUpCallback";
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -36,6 +38,9 @@ export default function App() {
     <>
       <Routes>
         {/* PUBLIC ROUTE */}
+       <Route path="/auth/google/callback/signup" element={<GoogleSignUpCallback />} />
+      <Route path="/auth/google/callback/signin" element={<GoogleSignInCallback />} />
+
         <Route path="/" element={<Login setIsLoggedIn={setIsLoggedIn} />} />
 
         {/* PROTECTED (ADMIN SIDE) */}

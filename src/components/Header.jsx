@@ -9,6 +9,11 @@ const Header = ({ onMenuClick }) => {
   const navigate = useNavigate()
 
   const role = localStorage.getItem("hr_role");
+  const f_name= localStorage.getItem("f_name");
+  const l_name = localStorage.getItem("l_name");
+
+  const md = f_name[0] + l_name[0];
+  
   let role_value = "";
 
   if (role === "admin") {
@@ -54,10 +59,10 @@ const Header = ({ onMenuClick }) => {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center space-x-2">
               <Avatar>
-                <AvatarFallback className="bg-[#7CB342] text-[#1A3A1A]">KT</AvatarFallback>
+                <AvatarFallback className="bg-[#7CB342] text-[#1A3A1A]">{md}</AvatarFallback>
               </Avatar>
               <div className="hidden sm:block text-left">
-                <p className="text-sm font-medium text-[#1A3A1A]">Kean Tan</p>
+                <p className="text-sm font-medium text-[#1A3A1A]">{f_name +" "+ l_name}</p>
                 <p className="text-xs text-[#5A6F5A]">{role_value}</p>
               </div>
             </Button>

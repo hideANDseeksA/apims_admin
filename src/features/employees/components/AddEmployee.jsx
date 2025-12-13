@@ -6,11 +6,11 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import AddressForm from "./AddressForm"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { showSuccess, showError, showConfirm } from "@/utils/alerts";
+import API from "@/api/axios"
 
-const AddEmployee = () => {
+const AddEmployee = ({ closeDialog, onSuccess }) => {
   const [isOtherCitizenship, setIsOtherCitizenship] = useState(false);
-  const API_URL = import.meta.env.VITE_API_URL
-
   const [formData, setFormData] = useState({
     employer_id: "",
     l_name: "",
@@ -58,20 +58,23 @@ const AddEmployee = () => {
   // Submit
   const handleSubmit = async (e) => {
     e.preventDefault()
+     closeDialog();
 
+    const confirm = await showConfirm("Are you sure to add this Employee?");
+    if (!confirm.isConfirmed) return;
 
     try {
-      const response = await axios.post(`${API_URL}/employee/add`, formData)
+      const response = await API.post(`/employee/add`, formData)
       console.log("✅ Employee added:", response.data)
-      alert("Employee added successfully!")
+      onSuccess();
+
     } catch (error) {
       if (error.response) {
         const { status, data } = error.response;
 
         // Handle specific status codes
         if (status === 409) {
-          console.error("⚠️ Conflict:", data);
-          alert("Employee already exists or data conflict!");
+
         }
         else if (status === 422) {
           console.error("⚠️ Validation error:", data);

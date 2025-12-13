@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import APIV2 from "@/api/axiosv2";
+import { showSuccess, showError, showConfirm } from "@/utils/alerts";
+import API from "@/api/axios";
 
 const FamilyTab = ({ employeeId }) => {
-  const API_URL = import.meta.env.VITE_API_URL;
 
   const [familyData, setFamilyData] = useState({});
   const [children, setChildren] = useState([]);
@@ -17,43 +18,44 @@ const FamilyTab = ({ employeeId }) => {
   const [childDialogOpen, setChildDialogOpen] = useState(false);
   const [editingChild, setEditingChild] = useState(null);
   const [childForm, setChildForm] = useState({ full_name: "", b_day: "" });
+const fetchFamilyData = async () => {
+  if (!employeeId) return;
 
-  useEffect(() => {
-    if (!employeeId) return;
+  try {
+    setLoading(true);
 
-    const fetchFamilyData = async () => {
-      try {
-        setLoading(true);
+    const res = await APIV2.get(`/family/${employeeId}`);
+    const data = res.data.data || res.data;
 
-        const res = await axios.get(`${API_URL}/family/${employeeId}`);
-        const data = res.data.data || res.data;
-        if (!data) {
-          setExists(false);
-          setFamilyData({});
-        } else {
-          setExists(true);
-          setFamilyData(data);
-        }
+    if (!data) {
+      setExists(false);
+      setFamilyData({});
+    } else {
+      setExists(true);
+      setFamilyData(data);
+    }
 
-        const childrenRes = await axios.get(
-          `${API_URL}/family/children/by-employee/${employeeId}`
-        );
-        setChildren(childrenRes.data || []);
-      } catch (err) {
-        if (err.response?.status === 404) {
-          setExists(false);
-          setFamilyData({});
-          setChildren([]);
-        } else {
-          console.error("Error fetching family data:", err);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
+    const childrenRes = await APIV2.get(
+      `/family/children/by-employee/${employeeId}`
+    );
+    setChildren(childrenRes.data || []);
+  } catch (err) {
+    if (err.response?.status === 404) {
+      setExists(false);
+      setFamilyData({});
+      setChildren([]);
+    } else {
+      console.error("Error fetching family data:", err);
+    }
+  } finally {
+    setLoading(false);
+  }
+};
 
-    fetchFamilyData();
-  }, [employeeId]);
+useEffect(() => {
+  fetchFamilyData();
+}, [employeeId]);
+
 
   const handleChange = (key, value) => {
     setFamilyData((prev) => ({ ...prev, [key]: value }));
@@ -64,6 +66,9 @@ const FamilyTab = ({ employeeId }) => {
   };
 
   const handleSaveFamily = async () => {
+    const confirm = await showConfirm("Are you sure to save this changes?");
+    if (!confirm.isConfirmed) return;
+
     try {
       const payload = {
         employee_id: employeeId,
@@ -85,23 +90,27 @@ const FamilyTab = ({ employeeId }) => {
       };
 
       if (!exists) {
-        const res = await axios.post(`${API_URL}/family/add`, payload);
+        const res = await API.post(`/family/add`, payload);
         const created = res.data.data || res.data;
         setFamilyData({ ...payload, family_id: created.family_id });
         setExists(true);
-        alert("✅ Family record created!");
+        await showSuccess("✅ Family record created!");
         return;
       }
 
-      await axios.put(`${API_URL}/family/update/${familyData.id}`, payload);
-      alert("✅ Family information updated!");
+      await API.put(`/family/update/${familyData.id}`, payload);
+      await showSuccess("✅ Family information updated!");
     } catch (err) {
       console.error("Error saving family data:", err);
-      alert("❌ Save failed.");
+      await showError("❌ Save failed.");
     }
   };
 
   const handleSaveChild = async () => {
+        setChildDialogOpen(false);
+    const confirm = await showConfirm("Are you sure to save this changes?");
+    if (!confirm.isConfirmed) return;
+
     try {
       if (!childForm.full_name || !childForm.b_day) {
         alert("Please enter child name and birth date.");
@@ -109,17 +118,17 @@ const FamilyTab = ({ employeeId }) => {
       }
 
       if (editingChild) {
-        const res = await axios.put(
-          `${API_URL}/family/children/update/${editingChild.id}`,
+        const res = await API.put(
+          `/family/children/update/${editingChild.id}`,
           { ...childForm, employee_id: employeeId }
         );
         const updatedChild = res.data.data || { ...editingChild, ...childForm };
         setChildren((prev) =>
           prev.map((c) => (c.id === updatedChild.id ? updatedChild : c))
         );
-        alert("✅ Child updated!");
+        await showSuccess("✅ Child updated!");
       } else {
-        const res = await axios.post(`${API_URL}/family/children/add`, {
+        const res = await API.post(`/family/children/add`, {
           ...childForm,
           employee_id: employeeId,
         });
@@ -128,32 +137,45 @@ const FamilyTab = ({ employeeId }) => {
           id: Math.random(),
         };
         setChildren((prev) => [...prev, createdChild]);
-        alert("✅ Child added!");
+        await showSuccess("✅ Child added!");
       }
 
       setChildForm({ full_name: "", b_day: "" });
       setEditingChild(null);
-      setChildDialogOpen(false);
+      fetchFamilyData();
+  
     } catch (err) {
       console.error("Error saving child:", err);
-      alert("❌ Failed to save child.");
+      await showError("❌ Failed to save child.");
     }
   };
 
   const handleDeleteChild = async (childId) => {
-    if (!confirm("Are you sure you want to delete this child?")) return;
+    const confirm = await showConfirm("Are you sure to delete this child?");
+    if (!confirm.isConfirmed) return;
 
     try {
-      await axios.delete(`${API_URL}/family/children/delete/${childId}`);
+      await API.delete(`/family/children/delete/${childId}`);
       setChildren((prev) => prev.filter((c) => c.id !== childId));
-      alert("✅ Child deleted!");
+      await showSuccess("✅ Child deleted!");
     } catch (err) {
       console.error("Error deleting child:", err);
-      alert("❌ Failed to delete child.");
+      await showError("❌ Failed to delete child.");
     }
   };
 
-  if (loading) return <p>Loading family data...</p>;
+if (loading)
+  return (
+    <div className="flex min-h-[200px] items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        {/* Spinner */}
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
+
+        {/* Loading text */}
+        <span className="text-gray-600 font-medium">Loading family data...</span>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-8">

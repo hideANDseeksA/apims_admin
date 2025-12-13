@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
-
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,12 +13,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import { Plus, Edit, Trash2 } from "lucide-react";
+import APIV2 from "@/api/axiosv2";
+import API from "@/api/axios";
+import { showSuccess, showError, showConfirm } from "@/utils/alerts";
 
 const MembershipTab = ({ employeeId }) => {
-  const API_URL = import.meta.env.VITE_API_URL;
   const [records, setRecords] = useState([]);
   const [membership, setMembership] = useState("");
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   // Edit handling
   const [isEditing, setIsEditing] = useState(false);
@@ -28,12 +29,16 @@ const MembershipTab = ({ employeeId }) => {
 
   const fetchData = async () => {
     try {
-      const res = await axios.get(
-        `${API_URL}/skills-membership/employee/${employeeId}/membership`
+      setLoading(true);
+      const res = await APIV2.get(
+        `/skills-membership/employee/${employeeId}/membership`
       );
       setRecords(res.data.memberships || []);
+      setLoading(false);
     } catch (err) {
       console.error(err);
+       setRecords( []);
+      setLoading(false);
     }
   };
 
@@ -57,7 +62,9 @@ const MembershipTab = ({ employeeId }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+          setOpen(false);
+    const confirm = await showConfirm("Are you sure to save this changes?");
+    if (!confirm.isConfirmed) return;
     const payload = {
       skills: null,
       membership: membership || null,
@@ -66,32 +73,46 @@ const MembershipTab = ({ employeeId }) => {
 
     try {
       if (isEditing && editingId) {
-        await axios.put(`${API_URL}/skills-membership/${editingId}`, payload);
+        await API.put(`/skills-membership/${editingId}`, payload);
       } else {
-        await axios.post(`${API_URL}/skills-membership/`, payload);
+        await API.post(`/skills-membership/`, payload);
       }
 
       setMembership("");
       setIsEditing(false);
       setEditingId(null);
-      setOpen(false);
       fetchData();
+      await showSuccess();
     } catch (err) {
       console.error(err);
-      alert("Failed to save.");
     }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Are you sure you want to delete this membership?")) return;
+    const confirm = await showConfirm("Are you sure to delete this data?");
+    if (!confirm.isConfirmed) return;
 
     try {
-      await axios.delete(`${API_URL}/skills-membership/${id}`);
+      await API.delete(`/skills-membership/${id}`);
       fetchData();
+      await showSuccess("Deleted!");
     } catch (error) {
       console.error("Delete error:", error);
     }
   };
+
+  if (loading)
+  return (
+    <div className="flex min-h-[200px] items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        {/* Spinner */}
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
+
+        {/* Loading text */}
+        <span className="text-gray-600 font-medium">Loading membership data...</span>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-4">

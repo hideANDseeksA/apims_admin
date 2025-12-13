@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -7,13 +6,16 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 import { Pencil, Trash2, PlusCircle, MapPin, Clock, CalendarDays } from "lucide-react"; // icons
+import APIV2 from "@/api/axiosv2";
+import API from "@/api/axios";
+import { showSuccess, showError, showConfirm } from "@/utils/alerts";
 
 const InvolvementTab = ({ employeeId }) => {
-  const API_URL = import.meta.env.VITE_API_URL;
   const [involvements, setInvolvements] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
+    const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     name_org: "",
@@ -26,10 +28,15 @@ const InvolvementTab = ({ employeeId }) => {
 
   const fetchInvolvements = async () => {
     try {
-      const res = await axios.get(`${API_URL}/involvement/${employeeId}`);
+      setLoading(true);
+      const res = await APIV2.get(`/involvement/${employeeId}`);
       setInvolvements(res.data || []);
+      setLoading(false)
     } catch (error) {
       console.error("Fetch error:", error);
+      setInvolvements( []);
+      setLoading(false)
+      
     }
   };
 
@@ -64,23 +71,27 @@ const InvolvementTab = ({ employeeId }) => {
   };
 
   const handleSave = async () => {
+    setOpenDialog(false);
+    const confirm = await showConfirm("Are you sure to save this changes?");
+    if (!confirm.isConfirmed) return;
+     
     try {
       if (isEditing) {
-        await axios.put(`${API_URL}/involvement/${editingId}`, {
+        await API.put(`/involvement/${editingId}`, {
           ...formData,
           employee_id: employeeId,
           hours_no: Number(formData.hours_no),
         });
       } else {
-        await axios.post(`${API_URL}/involvement`, {
+        await API.post(`/involvement`, {
           ...formData,
           employee_id: employeeId,
           hours_no: Number(formData.hours_no),
         });
       }
+      await showSuccess();
 
       fetchInvolvements();
-      setOpenDialog(false);
       setFormData({
         name_org: "",
         address_org: "",
@@ -91,19 +102,35 @@ const InvolvementTab = ({ employeeId }) => {
       });
     } catch (error) {
       console.error("Save error:", error);
+      await showError(error);
     }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Are you sure you want to delete this involvement?")) return;
+      const confirm = await showConfirm("Are you sure to delete this data?");
+    if (!confirm.isConfirmed) return;
     try {
-      await axios.delete(`${API_URL}/involvement/${id}`);
+      await API.delete(`/involvement/${id}`);
+
       fetchInvolvements();
+      await showSuccess("deleted!");
     } catch (error) {
       console.error("Delete error:", error);
+      await showError(error);
     }
   };
+if (loading)
+  return (
+    <div className="flex min-h-[200px] items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        {/* Spinner */}
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
 
+        {/* Loading text */}
+        <span className="text-gray-600 font-medium">Loading involvement data...</span>
+      </div>
+    </div>
+  );
   return (
     <div className="space-y-4">
       {/* Header + Add Button */}

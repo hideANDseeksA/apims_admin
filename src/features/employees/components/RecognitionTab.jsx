@@ -1,27 +1,32 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Edit, Trash2, PlusCircle } from "lucide-react";
+import APIV2 from "@/api/axiosv2";
+import API from "@/api/axios";
+import { showSuccess, showError, showConfirm } from "@/utils/alerts";
 
 const RecognitionTab = ({ employeeId }) => {
-  const API_URL = import.meta.env.VITE_API_URL;
   const [recognition, setRecognition] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
-
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({ award: "", award_body: "", date_awarded: "", award_level: "" });
 
   const fetchRecognition = async () => {
     try {
-      const res = await axios.get(`${API_URL}/recognition/${employeeId}`);
+      setLoading(true);
+      const res = await APIV2.get(`/recognition/${employeeId}`);
       setRecognition(res.data || []);
+            setLoading(false);
     } catch (error) {
       console.error("Error fetching recognition:", error);
+            setRecognition( []);
+            setLoading(false);
     }
   };
 
@@ -47,32 +52,55 @@ const RecognitionTab = ({ employeeId }) => {
   };
 
   const handleSubmit = async () => {
+     setOpenDialog(false);
+    const confirm = await showConfirm("Are you sure to save this changes?");
+    if (!confirm.isConfirmed) return;
+
+
+
     try {
       if (isEditing && editingId) {
-        await axios.put(`${API_URL}/recognition/${editingId}`, { ...formData, employee_id: employeeId });
+        await API.put(`/recognition/${editingId}`, { ...formData, employee_id: employeeId });
       } else {
-        await axios.post(`${API_URL}/recognition`, { ...formData, employee_id: employeeId });
+        await API.post(`/recognition`, { ...formData, employee_id: employeeId });
       }
 
       fetchRecognition();
-      setOpenDialog(false);
       setFormData({ award: "", award_body: "", date_awarded: "", award_level: "" });
       setIsEditing(false);
       setEditingId(null);
+      await showSuccess();
     } catch (error) {
       console.error("Error saving award:", error);
     }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Are you sure you want to delete this award?")) return;
+    const confirm = await showConfirm("Are you sure to delete this data?");
+    if (!confirm.isConfirmed) return;
+
     try {
-      await axios.delete(`${API_URL}/recognition/${id}`);
+      await API.delete(`/recognition/${id}`);
       fetchRecognition();
+       await showSuccess("Deleted");
     } catch (error) {
       console.error("Delete error:", error);
     }
   };
+
+  
+if (loading)
+  return (
+    <div className="flex min-h-[200px] items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        {/* Spinner */}
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
+
+        {/* Loading text */}
+        <span className="text-gray-600 font-medium">Loading Awards & Recognition data...</span>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-4">
