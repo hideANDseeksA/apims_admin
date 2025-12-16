@@ -3,8 +3,7 @@ import Swal from "sweetalert2";
 
 const specialRoutes = [
   "/auth/signin/",
-  "/auth/register",
-  "/auth/forgot-password"
+  "/auth/register"
 ];
 
 // Axios instance
