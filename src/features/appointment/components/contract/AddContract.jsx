@@ -4,8 +4,9 @@ import { DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/compon
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { SearchableDropdown } from "@/components/SearchableDropdown";
-import axios from "axios";
-
+import API from "@/api/axios";
+import APIV2 from "@/api/axiosv2";
+import { showSuccess, showError, showConfirm } from "@/utils/alerts";
 const AddContract = ({
   open,
   onOpenChange,
@@ -34,8 +35,8 @@ const AddContract = ({
   const handleEmployeeIdBlur = async () => {
     if (!formData.employee_id) return;
     try {
-      const res = await axios.get(
-        `${API_URL}/employee/names?employer_id=${formData.employee_id}`
+      const res = await APIV2.get(
+        `/employee/names?employer_id=${formData.employee_id}`
       );
       if (res.data && res.data.length > 0) {
         const e = res.data[0];
@@ -51,7 +52,12 @@ const AddContract = ({
   };
 
   const handleAddContract = async () => {
+    onOpenChange(false);
+    const confirm = await showConfirm("Are you sure to save this changes?");
+    if (!confirm.isConfirmed) return;
+
     try {
+
       const fd = new FormData();
       fd.append("employee_id", formData.id);
       fd.append("position_id", formData.position_id);
@@ -62,13 +68,12 @@ const AddContract = ({
       fd.append("end_date", formData.end_date);
       fd.append("file", formData.file);
 
-      await axios.post(`${API_URL}/contracts/upload_and_create`, fd, {
+      await API.post(`/contracts/upload_and_create`, fd, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
-
-      onOpenChange(false);
+    
       setFormData({
         employee_id: "",
         employee_name: "",
@@ -82,9 +87,11 @@ const AddContract = ({
       });
       setSelectedPosition("");
       setSelectedWorkstation("");
+      await showSuccess("Contract added successfully.");
       fetchContracts();
       fetchPositions();
       fetchWorkstations();
+      onOpenChange(false);
     } catch (err) {
       // handle error
     }
@@ -110,9 +117,9 @@ const AddContract = ({
         <div>
           <Label>Employee Name</Label>
           <Input
-            className="border rounded p-2 w-full bg-gray-100"
+            className="border rounded p-2 w-full"
             value={formData.employee_name}
-            disabled
+            readOnly
           />
         </div>
         <div>

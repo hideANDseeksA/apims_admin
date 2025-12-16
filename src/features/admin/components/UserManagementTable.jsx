@@ -7,6 +7,8 @@ import {
 import { Box, Button, Flex, Menu, Text, TextInput } from "@mantine/core";
 import API from "@/api/axios";
 import EditWorkstationModal from "./EditWorkstationModal"; // import your modal
+import { showSuccess, showError, showConfirm } from "@/utils/alerts";
+
 
 const UserManagementTable = () => {
   const [users, setUsers] = useState([]);
@@ -158,6 +160,9 @@ const UserManagementTable = () => {
       const selected = table.getSelectedRowModel().flatRows;
 
       const bulkUpdate = async (is_verified) => {
+          let status = is_verified?"Activate":"Deactivate"
+          const confirm = await showConfirm(`Are you sure to ${status} this users?`);
+          if (!confirm.isConfirmed) return;
         const payload = selected.map((row) => ({
           id: row.original.user_id,
           is_verified: is_verified,
@@ -166,6 +171,7 @@ const UserManagementTable = () => {
         try {
           await API.post("/auth/user/bulk-update", payload);
 
+          await showSuccess("Updated Successfully!");
           // Refresh table after update
           fetchUsers(globalFilter);
 

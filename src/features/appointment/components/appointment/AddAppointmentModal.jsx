@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
 import { SearchableDropdown } from "@/components/SearchableDropdown";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger
@@ -8,8 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-
-const API_URL = import.meta.env.VITE_API_URL;
+import API from "@/api/axios";
+import APIV2 from "@/api/axiosv2";
+import { showSuccess, showAutoClose, showConfirm } from "@/utils/alerts";
 
 const AddAppointmentModal = ({ opened, onClose, onAdded }) => {
   const [workstations, setWorkstations] = useState([]);
@@ -30,11 +30,33 @@ const AddAppointmentModal = ({ opened, onClose, onAdded }) => {
     id: null,
   });
 
+  const validateForm = () => {
+    const requiredFields = [
+      "employee_id",
+      "item_no",
+      "status",
+      "nature",
+      "start_date",
+      "end_date",
+      "workstation",
+      "file",
+    ];
+
+    for (const field of requiredFields) {
+      if (!formData[field]) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+
   // Fetch workstations
   useEffect(() => {
     const fetchWorkstations = async () => {
       try {
-        const res = await axios.get(`${API_URL}/workstation/all`);
+        const res = await API.get(`/workstation/all`);
         const data = res.data.data || [];
         setWorkstations(data);
 
@@ -72,41 +94,41 @@ const AddAppointmentModal = ({ opened, onClose, onAdded }) => {
   );
   const workstationType = selectedWs?.workstation_type || "";
 
-// Fetch items depending on selected status
-useEffect(() => {
-  if (!formData.status) return;
+  // Fetch items depending on selected status
+  useEffect(() => {
+    if (!formData.status) return;
 
-  const fetchItems = async () => {
-    try {
-      const endpoint =
-        formData.status === "Substitute"
-          ? `${API_URL}/ItemTable/subtitute_items`
-          : `${API_URL}/ItemTable/available_items`;
+    const fetchItems = async () => {
+      try {
+        const endpoint =
+          formData.status === "Substitute"
+            ? `/ItemTable/subtitute_items`
+            : `/ItemTable/available_items`;
 
-      const { data } = await axios.get(endpoint);
+        const { data } = await API.get(endpoint);
 
-      const formatted = data.map(item => ({
-        value: item.id,
-        label: item.item_id,
-        position: item.position,
-        salary_grade: item.salary_grade,
-      }));
+        const formatted = data.map(item => ({
+          value: item.id,
+          label: item.item_id,
+          position: item.position,
+          salary_grade: item.salary_grade,
+        }));
 
-      setItems(formatted);
-    } catch (error) {
-      console.error("Error fetching items:", error);
-    }
-  };
+        setItems(formatted);
+      } catch (error) {
+        console.error("Error fetching items:", error);
+      }
+    };
 
-  fetchItems();
-}, [formData.status]); // refetch whenever status changes
+    fetchItems();
+  }, [formData.status]); // refetch whenever status changes
 
 
   const handleEmployeeIdBlur = async () => {
     if (!formData.employee_id) return;
 
     try {
-      const res = await axios.get(`${API_URL}/employee/names?employer_id=${formData.employee_id}`);
+      const res = await APIV2.get(`/employee/names?employer_id=${formData.employee_id}`);
       if (res.data && res.data.length > 0) {
         const e = res.data[0];
         const fullName = `${e.f_name} ${e.m_name || ""} ${e.l_name}`.trim();
@@ -122,6 +144,15 @@ useEffect(() => {
   };
 
   const handleSubmit = async () => {
+
+    if (!validateForm()) {
+      await showAutoClose("Please fill in all required fields.", "warning");
+      return;
+    }
+    onClose();
+    const confirm = await showConfirm("Are you sure to save this changes?");
+    if (!confirm.isConfirmed) return;
+
     try {
       const fd = new FormData();
       fd.append("employee_id", formData.id); // UUID
@@ -133,7 +164,7 @@ useEffect(() => {
       fd.append("workstation", formData.workstation); // UUID
       fd.append("file", formData.file);               // binary
 
-      await axios.post(`${API_URL}/appointment/upload_and_create`, fd, {
+      await API.post(`/appointment/upload_and_create`, fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
@@ -148,7 +179,7 @@ useEffect(() => {
         file: null,
       });
 
-      onClose();
+      await showSuccess("Added!")
       onAdded();
     } catch (err) {
       console.error("Error adding appointment:", err);
@@ -220,7 +251,7 @@ useEffect(() => {
             {/* Status */}
             <div>
               <Label>Status</Label>
-             <Select
+              <Select
                 value={formData.status}
                 onValueChange={value => {
                   setFormData({ ...formData, status: value, item_no: "" });
@@ -290,8 +321,7 @@ useEffect(() => {
             <Input label="Salary Grade" value={formData.salary_grade ? "SG " + formData.salary_grade : ""} readOnly />
 
           </div>
-          {/* gunicorn -w 4 -k uvicorn.workers.UvicornWorker main:app
-uvicorn main:app --host 0.0.0.0 --port $PORT */}
+
           {/* Dates */}
           <Input
             type="date"

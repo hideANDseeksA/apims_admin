@@ -6,7 +6,7 @@ import {
   MRT_ToggleFiltersButton,
 } from "mantine-react-table";
 
-import { Button, Flex,Box,Text } from "@mantine/core";
+import { Button, Flex, Box, Text } from "@mantine/core";
 
 import API from "@/api/axios";
 import { showSuccess, showError, showConfirm } from "@/utils/alerts";
@@ -31,38 +31,34 @@ const Employees = () => {
   const navigate = useNavigate();
 
   /** Fetch Employees */
-const [open, setOpen] = useState(false);
-const fetchEmployees = async () => {
-  try {
-    const workstation_hold = localStorage.getItem("workstation_hold");
-    const page = pagination.pageIndex + 1;
-    const limit = pagination.pageSize;
+  const [open, setOpen] = useState(false);
+  const fetchEmployees = async () => {
+    try {
+      const workstation_hold = localStorage.getItem("workstation_hold");
+      const page = pagination.pageIndex + 1;
+      const limit = pagination.pageSize;
 
-    let res;
+      let res;
 
-       if (workstation_hold && workstation_hold.toLowerCase() !== "none") {
-      
-      res = await API.get(
-        `/employee/employees-with-workstation?page=${page}&limit=${limit}&workstation_id=${workstation_hold}`
-      );
-    } else {
-      res = await API.get(
-        `/employee/employees-with-workstation?page=${page}&limit=${limit}`
-      );
+      if (workstation_hold && workstation_hold.toLowerCase() !== "none") {
+
+        res = await API.get(
+          `/employee/employees-with-workstation?page=${page}&limit=${limit}&workstation_id=${workstation_hold}`
+        );
+      } else {
+        res = await API.get(
+          `/employee/employees-with-workstation?page=${page}&limit=${limit}`
+        );
+      }
+
+      setEmployees(res.data.results || []);
+      setTotalCount(res.data.total_count || 0);
+
+    } catch (error) {
+      console.error("❌ Error fetching employees:", error);
     }
+  };
 
-    setEmployees(res.data.results || []);
-    setTotalCount(res.data.total_count || 0);
-
-  } catch (error) {
-    console.error("❌ Error fetching employees:", error);
-  }
-};
-
-
-  useEffect(() => {
-    fetchEmployees();
-  }, []);
 
   useEffect(() => {
     fetchEmployees();
@@ -71,42 +67,42 @@ const fetchEmployees = async () => {
   /** Table Columns */
   const columns = useMemo(
     () => [
-        {
-             header: "Employee",
-             accessorFn: (row) =>
-               `${row.f_name} ${row.l_name}`,
-             id: "employee",
-             size: 250,
-             Cell: ({ row }) => (
-               <Flex align="center" gap="sm">
-                 <Box
-                   sx={{
-                     width: 35,
-                     height: 35,
-                     borderRadius: "50%",
-                     background: "#ddd",
-                     display: "flex",
-                     alignItems: "center",
-                     justifyContent: "center",
-                   }}
-                 >
-                   <Text size="sm" weight={500}>
-                     {row.original.f_name[0]}
-                     {row.original.l_name[0]}
-                   </Text>
-                 </Box>
-                 <Box>
-                   <Text>
-                     {row.original.f_name}{" "}
-                     {row.original.l_name}
-                   </Text>
-                   <Text size="xs" c="dimmed">
-                     {row.original.email_address}
-                   </Text>
-                 </Box>
-               </Flex>
-             ),
-           },
+      {
+        header: "Employee",
+        accessorFn: (row) =>
+          `${row.f_name} ${row.l_name}`,
+        id: "employee",
+        size: 250,
+        Cell: ({ row }) => (
+          <Flex align="center" gap="sm">
+            <Box
+              sx={{
+                width: 35,
+                height: 35,
+                borderRadius: "50%",
+                background: "#ddd",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Text size="sm" weight={500}>
+                {row.original.f_name[0]}
+                {row.original.l_name[0]}
+              </Text>
+            </Box>
+            <Box>
+              <Text>
+                {row.original.f_name}{" "}
+                {row.original.l_name}
+              </Text>
+              <Text size="xs" c="dimmed">
+                {row.original.email_address}
+              </Text>
+            </Box>
+          </Flex>
+        ),
+      },
       {
         accessorKey: "employer_id",
         header: "Employee ID",
@@ -123,20 +119,20 @@ const fetchEmployees = async () => {
         accessorKey: "workstation_type",
         header: "Type",
       },
-     {
-  id: "actions",
-  header: "Actions",
-  Cell: ({ row }) => (
-    <Button
-      onClick={() => navigate(`/employees/${row.original.employee_id}`)}
-      size="xs"
-      variant="light"
-      color="blue"
-    >
-      View
-    </Button>
-  ),
-},
+      {
+        id: "actions",
+        header: "Actions",
+        Cell: ({ row }) => (
+          <Button
+            onClick={() => navigate(`/employees/${row.original.employee_id}`)}
+            size="xs"
+            variant="light"
+            color="blue"
+          >
+            View
+          </Button>
+        ),
+      },
 
     ],
     []
@@ -165,18 +161,18 @@ const fetchEmployees = async () => {
         </Flex>
 
         {/* Restore YOUR ORIGINAL SHADCN DIALOG */}
-   <Dialog open={open} onOpenChange={setOpen}>
-  <DialogTrigger asChild>
-    <Button color="green">Add Employee</Button>
-  </DialogTrigger>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button color="green">Add Employee</Button>
+          </DialogTrigger>
 
-  <DialogContent className="w-full max-w-6xl max-h-[90vh] overflow-y-auto">
-    <AddEmployee
-      closeDialog={() => setOpen(false)} // 👈 pass close function
-      onSuccess={fetchEmployees}
-    />
-  </DialogContent>
-</Dialog>
+          <DialogContent className="w-full max-w-6xl max-h-[90vh] overflow-y-auto">
+            <AddEmployee
+              closeDialog={() => setOpen(false)} // 👈 pass close function
+              onSuccess={fetchEmployees}
+            />
+          </DialogContent>
+        </Dialog>
       </Flex>
     ),
   });

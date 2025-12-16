@@ -32,14 +32,14 @@ import {
   ArrowLeft,
   FileText
 } from "lucide-react";
-import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
+import API from "@/api/axios";
+import APIV2 from "@/api/axiosv2";
 
 export default function LeaveCredits() {
   const { employee_id } = useParams();
   const navigate = useNavigate();
   
-  const API_URL = import.meta.env.VITE_API_URL;
   const [leaveData, setLeaveData] = useState([]);
   const [totalLeave, setTotalLeave] = useState({ sick_leave: 0, vacation_leave: 0 });
   const [loading, setLoading] = useState(true);
@@ -56,11 +56,11 @@ export default function LeaveCredits() {
     setLoading(true);
     try {
       // Fetch leave points
-      const leaveRes = await axios.get(`${API_URL}/leave_points/${employee_id}`);
+      const leaveRes = await APIV2.get(`/leave_points/${employee_id}`);
       setLeaveData(leaveRes.data);
       
       // Fetch total leave
-      const totalRes = await axios.get(`${API_URL}/leave_points/total/${employee_id}`);
+      const totalRes = await APIV2.get(`/leave_points/total/${employee_id}`);
       setTotalLeave(totalRes.data);
     } catch (error) {
       console.error("Fetch error:", error);
@@ -75,7 +75,7 @@ export default function LeaveCredits() {
 
   const handleCreate = async () => {
     try {
-      await axios.post(`${API_URL}/leave_points/add/`, {
+      await API.post(`/leave_points/add/`, {
         employee_id: employee_id,
         ...form
       });
@@ -102,7 +102,7 @@ export default function LeaveCredits() {
   const handleEdit = async () => {
     if (!selectedLeave) return;
     try {
-      await axios.post(`${API_URL}/leave_points/add/`, {
+      await API.post(`/leave_points/add/`, {
         employee_id: selectedLeave.employee_id,
         points: editForm.points,
         types: editForm.types,
@@ -122,7 +122,7 @@ export default function LeaveCredits() {
   const handleDelete = async (leaveId) => {
     if (!confirm("Are you sure you want to delete this leave?")) return;
     try {
-      await axios.delete(`${API_URL}/leave_points/delete/${leaveId}`);
+      await API.delete(`/leave_points/delete/${leaveId}`);
       fetchData();
     } catch (error) {
       console.error("Delete error:", error);
@@ -213,6 +213,7 @@ export default function LeaveCredits() {
                 <div className="space-y-2">
                   <Label htmlFor="points">Points</Label>
                   <Input
+                    required
                     id="points"
                     type="number"
                     placeholder="Enter points"
@@ -227,7 +228,7 @@ export default function LeaveCredits() {
                     value={form.types}
                     onValueChange={(value) => setForm({ ...form, types: value })}
                   >
-                    <SelectTrigger id="type">
+                    <SelectTrigger id="type" className="w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -243,7 +244,7 @@ export default function LeaveCredits() {
                     value={form.status}
                     onValueChange={(value) => setForm({ ...form, status: value })}
                   >
-                    <SelectTrigger id="status">
+                    <SelectTrigger id="status" className="w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -408,6 +409,7 @@ export default function LeaveCredits() {
                 type="number"
                 value={editForm.points}
                 onChange={(e) => setEditForm({ ...editForm, points: e.target.value })}
+                required
               />
             </div>
 

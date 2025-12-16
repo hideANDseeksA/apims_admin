@@ -10,7 +10,7 @@ import { Modal, Flex, Button, Text } from "@mantine/core";
 import AddAppointmentModal from "./AddAppointmentModal";
 import EditAppointmentModal from "./EditAppointmentModal";
 import API from "@/api/axios";
-
+import { showSuccess, showError, showConfirm } from "@/utils/alerts";
 const AppointmentTable = () => {
   const [appointments, setAppointments] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -63,13 +63,17 @@ const AppointmentTable = () => {
 
   // ------------------ DELETE HANDLER ------------------
   const handleDeleteAppointment = async () => {
-    if (!appointmentToDelete) return;
+    const confirm = await showConfirm("Are you sure to delete this data?");
+    if (!confirm.isConfirmed) return;
+
+      
+
 
     try {
       await API.delete(`/appointment/${appointmentToDelete.id}`);
-      setDeleteOpened(false);
       setAppointmentToDelete(null);
       fetchAppointments();
+      await showSuccess("Deleted!.");
     } catch (err) {
       console.error("Error deleting appointment:", err);
     }
@@ -130,7 +134,7 @@ const AppointmentTable = () => {
               color="red"
               onClick={() => {
                 setAppointmentToDelete(row.original);
-                setDeleteOpened(true);
+                handleDeleteAppointment();
               }}
             >
               Delete

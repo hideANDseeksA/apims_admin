@@ -120,7 +120,7 @@ const EditServiceRecords = ({
       salary: r.salary || r.step1,
       status: r.status || "",
       date_from: r.start_date || r.date_from || "",
-      date_to: r.end_date || r.date_to || "",
+      date_to: r.end_date || r.date_to || null,
       appointment_id: sourceType === "Appointment" ? r.id : null,
       contracts_id: sourceType === "Contract" ? r.id : null,
     }));

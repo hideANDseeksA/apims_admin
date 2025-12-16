@@ -11,6 +11,7 @@ const Header = ({ onMenuClick }) => {
   const role = localStorage.getItem("hr_role");
   const f_name= localStorage.getItem("f_name");
   const l_name = localStorage.getItem("l_name");
+  const employee_id = localStorage.getItem("id")
 
   const md = f_name[0] + l_name[0];
   
@@ -25,9 +26,13 @@ const Header = ({ onMenuClick }) => {
   }
 
   const handleLogout = () => {
-    // Clear any auth data if needed
-    // localStorage.removeItem("token")
-    // sessionStorage.clear()
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("hr_role");
+    localStorage.removeItem("employee_id");
+    localStorage.removeItem("workstation_hold");
+    localStorage.removeItem("f_name");
+    localStorage.removeItem("l_name");
+    sessionStorage.clear()
 
     navigate('/')   // redirect to default page (change to /login if needed)
   }
@@ -69,8 +74,7 @@ const Header = ({ onMenuClick }) => {
           </DropdownMenuTrigger>
 
           <DropdownMenuContent className="w-52">
-            <DropdownMenuItem>Profile</DropdownMenuItem>
-            <DropdownMenuItem>Settings</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate(`/employees/${employee_id}`)}>Profile</DropdownMenuItem>
             <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

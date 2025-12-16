@@ -50,3 +50,19 @@ export const showSessionTimeout = () => {
     allowEscapeKey: false,
   });
 };
+
+// Instant auto-close alert (popup then remove immediately)
+export const showAutoClose = (
+  message,
+  icon = "info",
+  timer = 1000
+) => {
+  return Swal.fire({
+    icon,
+    text: message,
+    timer,
+    showConfirmButton: false,
+    heightAuto: false,
+    backdrop: false, // non-blocking
+  });
+};

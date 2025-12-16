@@ -2,42 +2,92 @@ import { useMemo, useEffect, useState } from "react";
 import {
   MantineReactTable,
   useMantineReactTable,
-  MRT_GlobalFilterTextInput,
   MRT_ToggleFiltersButton,
 } from "mantine-react-table";
-import { Box, Button, Flex, Menu, Text } from "@mantine/core";
-import axios from "axios";
+import {
+  Box,
+  Button,
+  Flex,
+  Menu,
+  Text,
+  TextInput,
+} from "@mantine/core";
 import API from "@/api/axios";
-const RetirementTable = () => {
-  const [retirementData, setRetirementData] = useState([]);
-  const [totalRecords, setTotalRecords] = useState(0);
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
-  const [globalFilter, setGlobalFilter] = useState("");
+import { showSuccess, showError, showConfirm } from "@/utils/alerts";
 
+const RetirementTable = () => {
+  const [data, setData] = useState([]);
+  const [totalRecords, setTotalRecords] = useState(0);
+
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+
+  // 🔍 Search (server-side only)
+  const [searchValue, setSearchValue] = useState("");
+  const [serverSearch, setServerSearch] = useState(null);
+
+  /* ---------------- API ---------------- */
 
   const fetchRetirements = async () => {
     try {
-      const page = pagination.pageIndex + 1; // MRT is 0-based
-      const limit = pagination.pageSize;
-
-      const res = await API.get(`retirement/`, {
+      const res = await API.get("/retirement/", {
         params: {
-          page,
-          limit,
-          search: globalFilter,
+          page: pagination.pageIndex + 1,
+          limit: pagination.pageSize,
+          search: serverSearch,
         },
       });
 
-      setRetirementData(res.data.data || []);
-      setTotalRecords(res.data.total_count || res.data.data?.length || 0);
-    } catch (error) {
-      console.error("Error fetching retirement data:", error);
+      setData(res.data.data || []);
+      setTotalRecords(res.data.total_count || 0);
+    } catch (err) {
+      console.error(err);
     }
   };
 
   useEffect(() => {
     fetchRetirements();
-  }, [pagination.pageIndex, pagination.pageSize, globalFilter]);
+  }, [pagination.pageIndex, pagination.pageSize, serverSearch]);
+
+  /* ---------------- ACTIONS ---------------- */
+
+  const updateRemarks = (employeeId, remarks) =>
+    API.put(`/retirement/remarks/${employeeId}`, { remarks });
+
+  const handleAction = async (type) => {
+    const confirm = await showConfirm(
+      `Are you sure you want to mark this as ${type}?`
+    );
+    if (!confirm.isConfirmed) return;
+
+    const selectedRows = table.getSelectedRowModel().flatRows;
+
+    const remarksValue =
+      type === "Retired"
+        ? "Retired"
+        : type === "Resigned"
+        ? "Resigned"
+        : null;
+
+    try {
+      await Promise.all(
+        selectedRows.map((row) =>
+          updateRemarks(row.original.employee_id, remarksValue)
+        )
+      );
+
+      await showSuccess(`${type} successfully updated`);
+      table.resetRowSelection();
+      fetchRetirements();
+    } catch (err) {
+      console.error(err);
+      showError("Failed to update remarks");
+    }
+  };
+
+  /* ---------------- COLUMNS ---------------- */
 
   const columns = useMemo(
     () => [
@@ -46,7 +96,6 @@ const RetirementTable = () => {
         accessorFn: (row) =>
           `${row.f_name} ${row.m_name ? row.m_name + "." : ""} ${row.l_name}`,
         id: "employee",
-        size: 250,
         Cell: ({ row }) => (
           <Flex align="center" gap="sm">
             <Box
@@ -60,15 +109,15 @@ const RetirementTable = () => {
                 justifyContent: "center",
               }}
             >
-              <Text size="sm" weight={500}>
-                {row.original.f_name[0]}
-                {row.original.l_name[0]}
+              <Text fw={600}>
+                {row.original.f_name?.[0]}
+                {row.original.l_name?.[0]}
               </Text>
             </Box>
             <Box>
               <Text>
                 {row.original.f_name}{" "}
-                {row.original.m_name ? row.original.m_name + ". " : ""}{" "}
+                {row.original.m_name ? row.original.m_name + ". " : ""}
                 {row.original.l_name}
               </Text>
               <Text size="xs" c="dimmed">
@@ -82,98 +131,99 @@ const RetirementTable = () => {
       { accessorKey: "full_age", header: "Age" },
       { accessorKey: "birth_date", header: "Birth Date" },
       { accessorKey: "remarks", header: "Remarks" },
+      {
+        accessorKey: "notifier",
+        header: "Notified",
+        Cell: ({ cell }) =>
+          cell.getValue() ? (
+            <Text c="green" fw={600}>Notified</Text>
+          ) : (
+            <Text c="red" fw={600}>Not Yet</Text>
+          ),
+      },
     ],
     []
   );
 
+  /* ---------------- TABLE ---------------- */
+
   const table = useMantineReactTable({
     columns,
-    data: retirementData,
+    data,
 
-    // SERVER-SIDE MODE
+    // Server-side pagination only
     manualPagination: true,
     rowCount: totalRecords,
     onPaginationChange: setPagination,
-    onGlobalFilterChange: setGlobalFilter,
-    state: { pagination, globalFilter },
+    state: { pagination },
 
-    // FEATURES
+    // ❌ Disable MRT global filter
+    enableGlobalFilter: false,
+
+    // ✅ Local-only column filters
+    enableColumnFilters: true,
+    enableColumnFilterModes: true,
+
     enableRowSelection: true,
     enableColumnOrdering: true,
-    enableColumnFilterModes: true,
-    enableGlobalFilter: true,
     enablePagination: true,
     enableColumnActions: false,
-    enableRowVirtualization: true,
 
-    initialState: {
-      pagination: { pageIndex: 0, pageSize: 10 },
-      showGlobalFilter: true,
+    mantineTableContainerProps: {
+      style: {
+        maxHeight: "calc(100vh - 200px)",
+        overflowY: "auto",
+        borderRadius: 10,
+        border: "1px solid #e5e7eb",
+      },
     },
 
-    mantineSearchTextInputProps: { placeholder: "Search Employees" },
-  
-  mantineTableContainerProps: {
-    style: {
-      maxHeight: "calc(100vh - 200px)", // adjust scroll height
-      overflowY: "auto",
-      borderRadius: "10px",
-      border: "1px solid #e5e7eb",
-    },
-  },
-    renderRowActionMenuItems: ({ row }) => (
-      <>
-        <Menu.Item onClick={() => alert("Profile: " + row.original.f_name)}>
-          View Profile
-        </Menu.Item>
-        <Menu.Item
-          onClick={() => alert("Email: " + row.original.email_address)}
-        >
-          Send Email
-        </Menu.Item>
-      </>
-    ),
-
-    renderTopToolbar: ({ table }) => {
-      const selected = table.getSelectedRowModel().flatRows;
-      const handleAction = (type) => {
-        selected.forEach((row) => {
-          alert(`${type}: ${row.getValue("employee")}`);
-        });
-      };
-
-      return (
-        <Flex justify="space-between" p="md">
-          <Flex gap="xs">
-            <MRT_GlobalFilterTextInput table={table} />
-            <MRT_ToggleFiltersButton table={table} />
-          </Flex>
-          <Flex gap="xs">
-            <Button
-              color="red"
-              disabled={!table.getIsSomeRowsSelected()}
-              onClick={() => handleAction("Deactivate")}
-            >
-              Deactivate
-            </Button>
-            <Button
-              color="green"
-              disabled={!table.getIsSomeRowsSelected()}
-              onClick={() => handleAction("Activate")}
-            >
-              Activate
-            </Button>
-            <Button
-              color="blue"
-              disabled={!table.getIsSomeRowsSelected()}
-              onClick={() => handleAction("Contact")}
-            >
-              Contact
-            </Button>
-          </Flex>
+    renderTopToolbar: () => (
+      <Flex justify="space-between" p="md">
+        <Flex gap="xs" align="center">
+          <TextInput
+            placeholder="Search by employer ID or remarks..."
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+            size="sm"
+            w={260}
+          />
+          <Button
+            onClick={() => {
+              setServerSearch(searchValue || null);
+              setPagination((p) => ({ ...p, pageIndex: 0 }));
+            }}
+          >
+            Search
+          </Button>
+          <MRT_ToggleFiltersButton table={table} />
         </Flex>
-      );
-    },
+
+        <Flex gap="xs">
+          <Button
+            color="gray"
+            disabled={!table.getIsSomeRowsSelected()}
+            onClick={() => handleAction("Reemployed")}
+          >
+            Reemployed
+          </Button>
+          <Button
+            color="red"
+            disabled={!table.getIsSomeRowsSelected()}
+            onClick={() => handleAction("Resigned")}
+          >
+            Resigned
+          </Button>
+          <Button
+            color="blue"
+            disabled={!table.getIsSomeRowsSelected()}
+            onClick={() => handleAction("Retired")}
+          >
+            Retired
+          </Button>
+        </Flex>
+      </Flex>
+    ),
   });
 
   return (

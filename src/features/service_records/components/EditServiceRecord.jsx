@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
-import { Button } from "@mantine/core";
+import { Button } from '@/components/ui/button'
+
 
 import {
   DialogContent,
@@ -13,6 +13,9 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SearchableDropdown } from "@/components/SearchableDropdown";
+import API from "@/api/axios";
+import APIV2 from "@/api/axiosv2";
+import { showSuccess, showError, showConfirm } from "@/utils/alerts";
 
 const EditServiceRecords = ({
   open,
@@ -37,6 +40,7 @@ const EditServiceRecords = ({
     branch: "",
     date_from: "",
     date_to: "",
+    active:false,
 
     appointment_id: null,
     contracts_id: null,
@@ -65,6 +69,7 @@ const EditServiceRecords = ({
       branch: servicerecord.branch || "",
       date_from: servicerecord.date_from,
       date_to: servicerecord.date_to || null,
+      active:servicerecord.active,
 
       appointment_id: servicerecord.appointment_id || null,
       contracts_id: servicerecord.contracts_id || null,
@@ -86,8 +91,8 @@ const EditServiceRecords = ({
     if (!formData.employee_id) return;
 
     try {
-      const res = await axios.get(
-        `${API_URL}/employee/names?employer_id=${formData.employee_id}`
+      const res = await APIV2.get(
+        `/employee/names?employer_id=${formData.employee_id}`
       );
 
       if (res.data?.length) {
@@ -111,10 +116,10 @@ const EditServiceRecords = ({
       try {
         const url =
           sourceType === "Contract"
-            ? `${API_URL}/contracts/employee/${formData.employee_pk}`
-            : `${API_URL}/appointment/employee/${formData.employee_pk}`;
+            ? `/contracts/employee/${formData.employee_pk}`
+            : `/appointment/employee/${formData.employee_pk}`;
 
-        const res = await axios.get(url);
+        const res = await API.get(url);
         setSourceRecords(res.data?.results || []);
       } catch (err) {
         console.error(err);
@@ -143,7 +148,7 @@ const EditServiceRecords = ({
       salary: r.salary || r.step1,
       status: r.status || "",
       date_from: r.start_date || r.date_from || "",
-      date_to: r.end_date || r.date_to || "",
+      date_to: r.end_date || null,
       appointment_id: sourceType === "Appointment" ? r.id : null,
       contracts_id: sourceType === "Contract" ? r.id : null,
     }));
@@ -151,18 +156,22 @@ const EditServiceRecords = ({
 
   /* -------------------- UPDATE -------------------- */
   const handleUpdate = async () => {
+    onOpenChange(false);
+    const confirm = await showConfirm("Are you sure to save this changes?");
+    if (!confirm.isConfirmed) return;
+
     try {
-      await axios.put(
-        `${API_URL}/service_records/update/${formData.service_record_id}`,
+      await API.put(
+        `/service_records/update/${formData.service_record_id}`,
         {
           employee_id: formData.employee_pk,
           salary: formData.salary,
-          active: true,
+          active: formData.active,
           date: null,
           last_increase_date: null,
 
           date_from: formData.date_from,
-          date_to: formData.date_to,
+          date_to: formData.date_to || null,
           branch: formData.branch,
           leave_pay: formData.leave_pay,
           cause: formData.cause,
@@ -171,9 +180,9 @@ const EditServiceRecords = ({
         },
         { headers: { "Content-Type": "application/json" } }
       );
-
-      onOpenChange(false);
-      fetchServiceRecords?.();
+      await showSuccess("Updated!");
+            fetchServiceRecords?.();
+      
     } catch (err) {
       console.error("Update error:", err);
     }
@@ -279,7 +288,11 @@ const EditServiceRecords = ({
           <Input label="Cause" value={formData.cause}
             onChange={(e) => setFormData({ ...formData, cause: e.target.value })} />
         </div>
-
+        <div>
+          <Label>Active</Label>
+          <Input label="Active" value={formData.active}
+            onChange={(e) => setFormData({ ...formData, active: e.target.value })} />
+        </div>
       </div>
 
       <DialogFooter>

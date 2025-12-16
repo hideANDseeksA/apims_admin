@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Button } from "@mantine/core";
+import { Button } from '@/components/ui/button'
 import {
   DialogContent,
   DialogFooter,
@@ -9,7 +9,6 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { SearchableDropdown } from "@/components/SearchableDropdown";
-import axios from "axios";
 import {
   Select,
   SelectContent,
@@ -17,7 +16,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
+import API from "@/api/axios";
+import APIV2 from "@/api/axiosv2";
+import { showSuccess, showError, showConfirm, showAutoClose } from "@/utils/alerts";
 const AddServiceRecords = ({
   open,
   onOpenChange,
@@ -60,8 +61,8 @@ const AddServiceRecords = ({
   const handleEmployeeIdBlur = async () => {
     if (!formData.employee_id) return;
     try {
-      const res = await axios.get(
-        `${API_URL}/employee/names?employer_id=${formData.employee_id}`
+      const res = await APIV2.get(
+        `/employee/names?employer_id=${formData.employee_id}`
       );
       if (res.data?.length > 0) {
         const e = res.data[0];
@@ -77,15 +78,36 @@ const AddServiceRecords = ({
       setSourceRecords([]);
     }
   };
+const validateForm = () => {
+  const requiredFields = [
+    "employee_id",
+    "employee_name",
+    "status",
+    "salary",
+    "date_from",
+    "branch",
+    "leave_pay",
+  ];
+
+  for (const field of requiredFields) {
+    if (!formData[field]) {
+      return false;
+    }
+  }
+
+  if (!sourceType || !selectedRecordId) return false;
+
+  return true;
+};
 
   const fetchAutoData = async (srcType) => {
     if (!formData.id) return;
     try {
       const url =
         srcType === "Contract"
-          ? `${API_URL}/contracts/employee/${formData.id}`
-          : `${API_URL}/appointment/employee/${formData.id}`;
-      const res = await axios.get(url);
+          ? `/contracts/employee/${formData.id}`
+          : `/appointment/employee/${formData.id}`;
+      const res = await API.get(url);
       if (res.data?.results?.length > 0) {
         setSourceRecords(res.data.results);
         // auto-fill first record
@@ -138,6 +160,15 @@ const AddServiceRecords = ({
   };
 
   const handleAddServiceRecords = async () => {
+
+    
+  if (!validateForm()) {
+    await showAutoClose("Please fill in all required fields.","warning");
+    return;
+  }
+    onOpenChange(false);
+    const confirm = await showConfirm("Are you sure to save this records?");
+    if (!confirm.isConfirmed) return;
     try {
       const payload = {
         employee_id: formData.id || formData.employee_id,
@@ -155,12 +186,11 @@ const AddServiceRecords = ({
         contracts_id: formData.contracts_id,
       };
 
-      await axios.post(`${API_URL}/service_records/add`, payload, {
+      await API.post(`/service_records/add`, payload, {
         headers: { "Content-Type": "application/json" },
       });
 
       // reset
-      onOpenChange(false);
       setFormData({
         employee_id: "",
         employee_name: "",
@@ -182,6 +212,7 @@ const AddServiceRecords = ({
       setSourceRecords([]);
       setSelectedRecordId("");
       setSourceType("");
+      await showSuccess("Added!");
 
       fetchContracts && fetchContracts();
     } catch (err) {
@@ -199,16 +230,19 @@ const AddServiceRecords = ({
         <div>
           <Label>Employee ID</Label>
           <Input
+             required
             value={formData.employee_id}
             onChange={(e) => setFormData({ ...formData, employee_id: e.target.value })}
             onBlur={handleEmployeeIdBlur}
             placeholder="Type employee ID then click outside"
+         
+
           />
         </div>
 
         <div>
           <Label>Employee Name</Label>
-          <Input value={formData.employee_name} disabled className="bg-gray-100" />
+          <Input value={formData.employee_name} readOnly />
         </div>
 
         <div>
@@ -237,7 +271,7 @@ const AddServiceRecords = ({
 
         <div>
           <Label>Status</Label>
-          <Input value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} />
+          <Input required value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value }) } />
         </div>
 
         <div>

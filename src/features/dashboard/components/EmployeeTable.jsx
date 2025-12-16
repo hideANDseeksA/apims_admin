@@ -141,7 +141,8 @@ export default function EmployeeTable() {
     return (
         <Card className="p-4">
             {/* HEADER */}
-            <CardHeader className="flex flex-row items-center justify-between">
+            {/* HEADER */}
+            <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <CardTitle>Employee Analytics</CardTitle>
                     <CardDescription>
@@ -150,10 +151,10 @@ export default function EmployeeTable() {
                     </CardDescription>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                     {/* MODE SELECT */}
                     <Select value={mode} onValueChange={setMode}>
-                        <SelectTrigger className="w-[150px]">
+                        <SelectTrigger className="w-full sm:w-[150px]">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -165,7 +166,7 @@ export default function EmployeeTable() {
                     {/* GROUP FILTER */}
                     <Popover>
                         <PopoverTrigger asChild>
-                            <button className="border rounded-md px-4 py-2 w-[200px] text-left">
+                            <button className="border rounded-md px-4 py-2 w-full sm:w-[200px] text-left">
                                 {selectedGroup === ""
                                     ? `All ${groupLabelPlural}`
                                     : selectedGroup}
@@ -207,13 +208,13 @@ export default function EmployeeTable() {
             </CardHeader>
 
             {/* CHART */}
-            <CardContent className="pb-6">
-                <div className="w-full" style={{ height: "500px" }}>
-                    <ChartContainer config={chartConfig}>
-                        <ResponsiveContainer width="100%" height="30%">
+            <CardContent className="pb-6 overflow-hidden relative">
+                <div className="w-full h-[390px] flex justify-center items-center">
+                    <ChartContainer config={chartConfig} className="h-full w-full">
+                        <ResponsiveContainer width="100%" height="100%">
                             <BarChart
                                 data={chartData}
-                                margin={{ top: 10, right: 10, left: 10, bottom: 40 }}
+                                margin={{ top: 10, right: 10, left: 10, bottom: 10 }}
                             >
                                 <CartesianGrid vertical={false} />
                                 <XAxis
@@ -222,19 +223,25 @@ export default function EmployeeTable() {
                                     tickMargin={10}
                                     axisLine={false}
                                 />
-                                <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                                <Bar dataKey="count" fill={chartConfig.count.color} radius={8} />
+                                <ChartTooltip
+                                    cursor={false}
+                                    content={<ChartTooltipContent hideLabel />}
+                                />
+                                <Bar
+                                    dataKey="count"
+                                    fill={chartConfig.count.color}
+                                    radius={8}
+                                />
                             </BarChart>
                         </ResponsiveContainer>
                     </ChartContainer>
                 </div>
             </CardContent>
 
-            <div className="mb-6"></div>
 
 
             {/* FOOTER */}
-            <CardFooter className="flex-col items-start gap-2 text-sm mb-6">
+            <CardFooter className="flex-col items-start gap-2 text-sm ">
                 <div className="flex gap-2 font-medium">
                     Employee distribution{" "}
                     <TrendingUp className="h-4 w-4" />

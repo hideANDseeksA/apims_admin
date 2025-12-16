@@ -29,10 +29,7 @@ import {
 } from "@/components/ui/select";
 import API from "@/api/axios";
 import { showSuccess, showError, showConfirm } from "@/utils/alerts";
-
-
-
-const API_URL = import.meta.env.VITE_API_URL;
+import APIV2 from "@/api/axiosv2";
 
 const PositionTable = () => {
   const [positionData, setPositionData] = useState([]);
@@ -61,7 +58,7 @@ const PositionTable = () => {
   // Fetch salary tranches
   const fetchSalaryGrades = async () => {
     try {
-      const res = await axios.get(`${API_URL}/salary_tranches`);
+      const res = await APIV2.get(`/salary_tranches`);
       setSalaryGrade(res.data || []);
     } catch (err) {
       console.error("Error fetching salary tranches:", err);

@@ -12,7 +12,7 @@ import { Dialog } from "@/components/ui/dialog";
 import AddServiceRecords from "./AddServiceRecord";
 import EditServiceRecords from "./EditServiceRecord";
 import API from "@/api/axios";
-
+import { showSuccess, showError, showConfirm } from "@/utils/alerts";
 
 const ServiceRecordTable = () => {
   const [serviceRecords, setServiceRecords] = useState([]);
@@ -56,11 +56,15 @@ const ServiceRecordTable = () => {
   ]);
 
   const handleDelete = async (service_id) => {
-    if (!confirm("Delete this service record?")) return;
+    const confirm = await showConfirm("Are you sure to delete this Records?");
+    if (!confirm.isConfirmed) return;
+
     try {
       await API.delete(
         `/service_records/delete/${service_id}`
       );
+
+      await showSuccess("Deleted!")
       fetchServiceRecords();
     } catch (error) {
       console.error("Delete error:", error);

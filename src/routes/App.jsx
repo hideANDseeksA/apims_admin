@@ -30,6 +30,7 @@ import ServiceRecord from "@/features/service_records/pages/ServiceRecords";
 import UserManagement from "@/features/admin/pages/UserManagement";
 import GoogleSignInCallback from "@/features/auth/pages/GoogleSignInCallback";
 import GoogleSignUpCallback from "@/features/auth/pages/GoogleSignUpCallback";
+import ResetPassword from "@/features/auth/pages/ResetPassword";
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -40,6 +41,8 @@ export default function App() {
         {/* PUBLIC ROUTE */}
        <Route path="/auth/google/callback/signup" element={<GoogleSignUpCallback />} />
       <Route path="/auth/google/callback/signin" element={<GoogleSignInCallback />} />
+      <Route path ="/reset-password" element={<ResetPassword/>}/>
+
 
         <Route path="/" element={<Login setIsLoggedIn={setIsLoggedIn} />} />
 

@@ -7,8 +7,8 @@ const API = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
 });
 
-// BEAUTIFUL DEFAULT LOADER
-const defaultLoadingHTML = `
+// CUSTOM BEAUTIFUL LOADER HTML
+const loadingHTML = `
 <div class="flex flex-col items-center justify-center">
   <div class="loader"></div>
   <p style="margin-top: 15px; font-size: 16px; font-weight: 500; color: #2d5f2e;">
@@ -25,29 +25,10 @@ const defaultLoadingHTML = `
   border-radius: 50%;
   animation: spin 0.9s linear infinite;
 }
-@keyframes spin { to { transform: rotate(360deg); } }
-</style>
-`;
 
-// SPECIAL SIGN-IN LOADER
-const signInLoadingHTML = `
-<div class="flex flex-col items-center justify-center">
-  <div class="loader"></div>
-  <p style="margin-top: 15px; font-size: 16px; font-weight: 500; color: #2d5f2e;">
-    Signing in...
-  </p>
-</div>
-
-<style>
-.loader {
-  width: 60px;
-  height: 60px;
-  border: 6px solid rgba(0,0,0,0.1);
-  border-top-color: #2d5f2e;
-  border-radius: 50%;
-  animation: spin 0.9s linear infinite;
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
-@keyframes spin { to { transform: rotate(360deg); } }
 </style>
 `;
 
@@ -59,11 +40,11 @@ API.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`;
   }
 
-  // Detect endpoint
-  const isSignInRoute = config.url.includes("/auth/signin/");
+  
 
+  // BEAUTIFUL LOADING FOR ALL REQUESTS
   loadingAlert = Swal.fire({
-    html: isSignInRoute ? signInLoadingHTML : defaultLoadingHTML,
+    html: loadingHTML,
     allowOutsideClick: false,
     allowEscapeKey: false,
     showConfirmButton: false,
@@ -77,38 +58,19 @@ API.interceptors.request.use((config) => {
 // RESPONSE INTERCEPTOR
 API.interceptors.response.use(
   (response) => {
-    const { method, url } = response.config;
-    const isSignInRoute = url.includes("/auth/signin/");
+    const { method } = response.config;
 
     if (loadingAlert) {
       Swal.close();
       loadingAlert = null;
     }
 
-    // SPECIAL SUCCESS MESSAGE FOR SIGN-IN
-    if (isSignInRoute) {
-      const name =
-        response.data?.user?.name ||
-        response.data?.full_name ||
-        "User";
-
-      Swal.fire({
-        icon: "success",
-        title: "Welcome!",
-        text: `Welcome, ${name}!`,
-        confirmButtonColor: "#2d5f2e",
-      });
-
-      return response;
-    }
-
-    // DEFAULT SUCCESS HANDLER
     if (["post", "put", "delete"].includes(method)) {
       Swal.fire({
         icon: "success",
         title: "Success",
         text: response.data?.message || "Operation Successful!",
-        confirmButtonColor: "#2d5f2e",
+        confirmButtonColor: "#2d5f2e"
       });
     }
 
@@ -130,7 +92,7 @@ API.interceptors.response.use(
       icon: "error",
       title: "Error",
       text: message,
-      confirmButtonColor: "#2d5f2e",
+      confirmButtonColor: "#2d5f2e"
     });
 
     return Promise.reject(error);

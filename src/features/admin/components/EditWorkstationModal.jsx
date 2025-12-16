@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { SearchableDropdown } from "@/components/SearchableDropdown";
 import API from "@/api/axios";
+import { showSuccess, showError, showConfirm } from "@/utils/alerts";
 
 const HR_ROLES = ["super_admin", "admin", "user", "hr"]; // Enum values
 
@@ -83,6 +84,9 @@ const EditWorkstationModal = ({ opened, onClose, user, onUpdated }) => {
 
   const handleSubmit = async () => {
     onClose();
+    const confirm = await showConfirm("Are you sure to save this changes?");
+    if (!confirm.isConfirmed) return;
+
     try {
       const payload = {
         workstation_hold: formData.workstation_hold, // null if none
@@ -90,7 +94,9 @@ const EditWorkstationModal = ({ opened, onClose, user, onUpdated }) => {
       };
 
       await API.put(`auth/user/${user.user_id}`, payload);
+            await showSuccess("Updated Successfully!");
       onUpdated();
+
     } catch (error) {
       console.error("Error updating user:", error);
     }

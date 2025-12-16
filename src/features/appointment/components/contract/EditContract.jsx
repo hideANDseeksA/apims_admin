@@ -4,7 +4,9 @@ import { Label } from "@/components/ui/label";
 import { SearchableDropdown } from "@/components/SearchableDropdown";
 import { Input } from "@/components/ui/input";
 import { Button } from "@mantine/core";
-import axios from "axios";
+import { showSuccess, showError, showConfirm } from "@/utils/alerts";
+import API from "@/api/axios";
+
 
 const EditContract = ({
   open,
@@ -52,6 +54,9 @@ const EditContract = ({
   }, [contract]);
 
   const handleEditContract = async () => {
+    onOpenChange(false);
+    const confirm = await showConfirm("Are you sure to save this changes?");
+    if (!confirm.isConfirmed) return;
     try {
       const fd = new FormData();
       fd.append("contract_id", contract.id);
@@ -66,10 +71,10 @@ const EditContract = ({
       if (formData.file) {
         fd.append("file", formData.file);
       }
-      await axios.put(`${API_URL}/contracts/${contract.id}`, fd, {
+      await API.put(`/contracts/${contract.id}`, fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      onOpenChange(false);
+      await showSuccess("Updated successfully.");
       fetchContracts();
     } catch (err) {
       console.log("Error editing contract:", err);
@@ -88,7 +93,7 @@ const EditContract = ({
         </div>
         <div>
           <Label>Employee Name</Label>
-          <Input className="border rounded p-2 w-full bg-gray-100" value={formData.employee_name} disabled />
+          <Input className="border rounded p-2 w-full" value={formData.employee_name} readOnly/>
         </div>
         <div>
           <Label>Position</Label>

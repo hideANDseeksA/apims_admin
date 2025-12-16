@@ -9,6 +9,17 @@ import Landing from '../components/Landing'
 import API from '@/api/axios'
 import { Chrome, Loader2, Eye, EyeOff } from "lucide-react"
 import APIV2 from '@/api/axiosv2'
+import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogDescription,
+  DialogFooter
+} from "@/components/ui/dialog"
+import { showError } from '@/utils/alerts'
 
 const Login = ({ setIsLoggedIn }) => {
   const navigate = useNavigate()
@@ -16,7 +27,8 @@ const Login = ({ setIsLoggedIn }) => {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-
+  const [acceptTerms, setAcceptTerms] = useState(false)
+  const [isSending, setIsSending] = useState(false);
   const [loginData, setLoginData] = useState({
     employee_id: "",
     password: "",
@@ -31,6 +43,24 @@ const Login = ({ setIsLoggedIn }) => {
   const API_URL = import.meta.env.VITE_API_URL
   const BASE_URL = window.location.origin;
 
+  const [employeeId, setEmployeeId] = useState("");
+
+
+  const handleSendLink = async () => {
+    if (!employeeId) return alert("Please enter Employee ID");
+    try {
+           setIsSending(true);
+       await APIV2.post(`/auth/forgot-password`, {
+        employee_id:employeeId,
+      })
+
+    } catch (error) {
+
+    } finally {
+      setIsSending(false);
+    }
+
+  };
 
   const handleLoginChange = (e) => {
     setLoginData({ ...loginData, [e.target.id]: e.target.value })
@@ -64,8 +94,9 @@ const Login = ({ setIsLoggedIn }) => {
 
         setIsLoading(false)
       }
+      
     } catch (error) {
-      alert(error.response?.data?.message || "Registration failed.")
+
     } finally {
       setIsLoading(false)
     }
@@ -82,7 +113,7 @@ const Login = ({ setIsLoggedIn }) => {
       })
 
       if (res.status === 200) {
-        const { access_token, hr_role, workstation_hold, f_name, l_name } = res.data
+        const { access_token, hr_role, workstation_hold, f_name, l_name, employee_id } = res.data
 
         localStorage.setItem("access_token", access_token)
         localStorage.setItem("hr_role", hr_role)
@@ -90,12 +121,16 @@ const Login = ({ setIsLoggedIn }) => {
         localStorage.setItem("workstation_hold", workstation_hold)
         localStorage.setItem("f_name", f_name)
         localStorage.setItem("l_name", l_name)
+        localStorage.setItem("id", employee_id)
 
         setIsLoggedIn(true)
         navigate("/dashboard")
       }
+
+
     } catch (error) {
-      alert(error.response?.data?.detail || "Login failed.")
+      
+
     } finally {
       setIsLoading(false)
     }
@@ -189,11 +224,89 @@ const Login = ({ setIsLoggedIn }) => {
                       {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
                   </div>
+                  <div className="flex items-start gap-3">
+                    <Checkbox
+                      id="terms"
+                      checked={acceptTerms}
+                      onCheckedChange={setAcceptTerms}
+                    />
+
+                    <label
+                      htmlFor="terms"
+                      className="text-sm text-gray-600 leading-relaxed"
+                    >
+                      I agree to the{" "}
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <button
+                            type="button"
+                            className="text-[#2d5f2e] font-medium hover:underline"
+                          >
+                            Terms & Conditions
+                          </button>
+                        </DialogTrigger>
+
+                        <DialogContent className="max-w-lg">
+                          <DialogHeader>
+                            <DialogTitle>Terms & Conditions</DialogTitle>
+                          </DialogHeader>
+
+                   <div className="text-sm text-gray-600 space-y-3 max-h-[60vh] overflow-y-auto">
+  <p>
+    By creating and using an APIMS account, you agree to comply with all
+    applicable organizational policies, system rules, and acceptable use
+    guidelines governing the Automated Personnel Management System.
+  </p>
+
+  <p>
+    You confirm that all information, documents, and data provided in your
+    profile are accurate, complete, current, and legitimate. Any false,
+    misleading, or unauthorized information submitted may result in corrective
+    action, suspension, or termination of your account.
+  </p>
+
+  <p>
+    You are solely responsible for maintaining the confidentiality of your
+    login credentials and for all activities conducted under your account.
+    Sharing credentials or allowing unauthorized access is strictly prohibited.
+  </p>
+
+  <p>
+    APIMS collects and processes personal data for purposes including user
+    authentication, personnel management, system security, compliance, and
+    internal administrative operations, in accordance with applicable data
+    protection and privacy laws.
+  </p>
+
+  <p>
+    Your personal data will be handled securely and accessed only by authorized
+    personnel. APIMS will not disclose your information to third parties except
+    where required by law, policy, or legitimate operational needs.
+  </p>
+
+  <p>
+    Any attempt to misuse the system, manipulate records, access restricted
+    data, or compromise system integrity may result in disciplinary action,
+    account termination, and possible legal consequences.
+  </p>
+
+  <p>
+    By using this system, you acknowledge that you have read, understood, and
+    agreed to be bound by these Terms and Conditions and the associated Data
+    Privacy policies.
+  </p>
+</div>
+
+                        </DialogContent>
+                      </Dialog>
+                    </label>
+                  </div>
 
                   <Button
                     type="submit"
-                    disabled={isLoading}
-                    className="h-12 w-full rounded-xl bg-gradient-to-r from-[#2d5f2e] to-[#3a7a3c] hover:from-[#255227] hover:to-[#2d5f2e] text-white font-medium shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={isLoading || !acceptTerms}
+                    className="h-12 w-full rounded-xl bg-gradient-to-r from-[#2d5f2e] to-[#3a7a3c]
+  disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isLoading ? (
                       <span className="flex items-center gap-2">
@@ -224,8 +337,9 @@ const Login = ({ setIsLoggedIn }) => {
                   <Button
                     type="button"
                     variant="outline"
-                    disabled={isLoading}
-                    className="w-full h-12 flex items-center justify-center gap-3 rounded-xl border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] font-medium"
+                    disabled={isLoading || !acceptTerms}
+                    className="w-full h-12 flex items-center justify-center gap-3 rounded-xl
+              disabled:opacity-50 disabled:cursor-not-allowed"
                     onClick={() =>
                     (window.location.href =
                       `${API_URL}/google-auth/google/login?redirect=${BASE_URL}/auth/google/callback/signup`)
@@ -234,6 +348,7 @@ const Login = ({ setIsLoggedIn }) => {
                     <Chrome className="h-5 w-5 text-gray-700" />
                     Continue with Google
                   </Button>
+
                 </form>
               ) : (
                 <form onSubmit={handleLogin} className="space-y-5">
@@ -275,6 +390,50 @@ const Login = ({ setIsLoggedIn }) => {
                     </button>
                   </div>
 
+                  {/* Forgot Password Link */}
+                  <div className="text-right">
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <button className="text-sm hover:underline font-semibold">
+                          Forgot Password?
+                        </button>
+                      </DialogTrigger>
+
+                      <DialogContent className="sm:max-w-[400px]">
+                        <DialogHeader>
+                          <DialogTitle>Forgot Password</DialogTitle>
+                          <DialogDescription>
+                            Enter your employee ID to receive a password reset link.
+                          </DialogDescription>
+                        </DialogHeader>
+
+                        <div className="grid gap-4 py-4">
+                          <Input
+                            placeholder="Employee ID"
+                            value={employeeId}
+                            onChange={(e) => setEmployeeId(e.target.value)}
+                          />
+                        </div>
+
+                        <DialogFooter className="flex justify-between">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setEmployeeId("")}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                          type="button"
+                          onClick={handleSendLink}
+                          disabled={isSending}
+                        >
+                          {isSending ? "Sending link..." : "Send Link"}
+                        </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                   <Button
                     type="submit"
                     disabled={isLoading}

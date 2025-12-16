@@ -131,20 +131,22 @@ const AddEmployee = ({ closeDialog, onSuccess }) => {
               </div>
               <div>
                 <Label>Date of Birth</Label>
-                <Input type="date" name="b_day" value={formData.b_day} onChange={handleChange} />
+                <Input type="date" name="b_day" value={formData.b_day} onChange={handleChange} required/>
               </div>
               <div>
                 <Label>Place of Birth</Label>
-                <Input name="p_birth" value={formData.p_birth} onChange={handleChange} />
+                <Input name="p_birth" value={formData.p_birth} onChange={handleChange} required/>
               </div>
               {/* Gender */}
-              <div>
+              <div >
                 <Label>Sex</Label>
                 <Select
+                 
                   value={formData.gender}
                   onValueChange={(value) => setFormData((prev) => ({ ...prev, gender: value }))}
+                  required
                 >
-                  <SelectTrigger>
+                     <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select Sex" />
                   </SelectTrigger>
                   <SelectContent>
@@ -162,7 +164,7 @@ const AddEmployee = ({ closeDialog, onSuccess }) => {
                   value={formData.civil_status}
                   onValueChange={(value) => setFormData((prev) => ({ ...prev, civil_status: value }))}
                 >
-                  <SelectTrigger>
+              <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select Civil Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -201,7 +203,7 @@ const AddEmployee = ({ closeDialog, onSuccess }) => {
                     }
                   }}
                 >
-                  <SelectTrigger>
+                    <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select citizenship" />
                   </SelectTrigger>
                   <SelectContent>
@@ -280,7 +282,9 @@ const AddEmployee = ({ closeDialog, onSuccess }) => {
           {/* Submit */}
           <div className="flex justify-end gap-2">
             <Button type="submit">Submit</Button>
-            <Button type="button" variant="outline">Cancel</Button>
+            <Button type="button" variant="outline" 
+            
+            >Cancel</Button>
           </div>
         </form>
       </CardContent>

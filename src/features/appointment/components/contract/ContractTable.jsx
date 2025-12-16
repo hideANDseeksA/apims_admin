@@ -23,7 +23,7 @@ import { Input } from "@/components/ui/input";
 import AddContract from "./AddContract";
 import EditContract from "./EditContract";
 import API from "@/api/axios";
-
+import { showSuccess, showError, showConfirm } from "@/utils/alerts";
 const ContractTable = () => {
   const [contracts, setContracts] = useState([]);
   const [opened, setOpened] = useState(false);
@@ -75,7 +75,7 @@ const [editingContract, setEditingContract] = useState(null);
 
     const fetchPositions = async () => {
       try {
-        const res = await axios.get(`${API_URL}/position/all`);
+        const res = await API.get(`/position/all`);
         const formatted = res.data.map((pos) => ({
           value: pos.id,
           label: pos.position,
@@ -88,7 +88,7 @@ const [editingContract, setEditingContract] = useState(null);
 
 const fetchWorkstations = async () => {
   try {
-    const res = await axios.get(`${API_URL}/workstation/all`);
+    const res = await API.get(`/workstation/all`);
     console.log(res.data.data);
     const formatted = (res.data.data || []).map((ws) => ({
       value: ws.workstation_id,
@@ -140,44 +140,14 @@ useEffect(() => {
   setEditOpened(true);
 };
 
-const handleEditContract = async () => {
-  try {
-    const fd = new FormData();
-    fd.append("contract_id", editingContract.id);
-    fd.append("employee_id", formData.id);
-    fd.append("position_id", formData.position_id);
-    fd.append("workstation", formData.workstation);
-    fd.append("status", formData.status);
-    fd.append("salary", formData.salary);
-    fd.append("start_date", formData.start_date);
-    fd.append("end_date", formData.end_date);
-    fd.append("file_path", formData.file_path);
-   if (formData.file) {
-      fd.append("file", formData.file);
-    } else {
- 
-    }
-
-    await axios.put(`${API_URL}/contracts/${editingContract.id}`, fd, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
-
-
-    setEditOpened(false);
-    setEditingContract(null);
-    fetchContracts();
-  } catch (err) {
-    console.log("Error editing contract:", err);
-  }
-};
 
   const handleDelete = async (contract_id) => {
-      if (!confirm("Are you sure you want to delete this contract?")) return;
+  const confirm = await showConfirm("Are you sure to delete this data?");
+    if (!confirm.isConfirmed) return;
     
       try {
-        await axios.delete(`${API_URL}/contracts/${contract_id}`);
+        await API.delete(`/contracts/${contract_id}`);
+            await showSuccess("Deleted successfully.");
         fetchContracts();
       } catch (error) {
         console.error("Delete error:", error);

@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { SearchableDropdown } from "@/components/SearchableDropdown";
 import API from "@/api/axios";
-
+import { showSuccess, showError, showConfirm } from "@/utils/alerts";
 const API_URL = import.meta.env.VITE_API_URL;
 
 
@@ -103,11 +103,11 @@ const [lastSearchedId, setLastSearchedId] = useState("");
       let endpoint;
 
       if (mode === "all") {
-        endpoint = `${API_URL}/ItemTable/all`;
+        endpoint = `/ItemTable/all`;
       } else if (mode === "substitute") {
-        endpoint = `${API_URL}/ItemTable/subtitute_items`;
+        endpoint = `/ItemTable/subtitute_items`;
       } else if (mode === "available") {
-        endpoint = `${API_URL}/ItemTable/available_items`;
+        endpoint = `/ItemTable/available_items`;
       }
 
       const { data } = await API.get(endpoint);
@@ -180,6 +180,9 @@ const handleEmployeeIdBlur = async (e) => {
 
 
   const handleSubmit = async () => {
+    onClose();
+    const confirm = await showConfirm("Are you sure to save this changes?");
+    if (!confirm.isConfirmed) return;
     try {
       const fd = new FormData();
       fd.append("appointment_id", formData.appointment_id);
@@ -193,11 +196,11 @@ const handleEmployeeIdBlur = async (e) => {
 
       if (formData.file) fd.append("file", formData.file);
 
-      await axios.put(`${API_URL}/appointment/${formData.appointment_id}`, fd, {
+      await API.put(`/appointment/${formData.appointment_id}`, fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      onClose();
+     await showSuccess("Updated successfully.");
       onUpdated();
     } catch (err) {
       console.error("Error updating appointment:", err);
